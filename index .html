@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>環境整備点検 ルートビルダー</title>
+<style>
+:root{--ink:#101821;--sub:#5A6B7B;--paper:#E7EAEE;--card:#fff;--line:#C9D1DA;
+ --rail:#1F4E79;--stop:#C0392B;--amber:#8A6212;--band:#16324F;--green:#1F7A5C}
+*{box-sizing:border-box}
+body{margin:0;background:var(--paper);color:var(--ink);
+ font-family:"Hiragino Kaku Gothic ProN","Yu Gothic","Meiryo",system-ui,sans-serif;font-size:14px;line-height:1.6}
+.num{font-family:ui-monospace,Consolas,monospace;font-variant-numeric:tabular-nums}
+header{background:var(--band);color:#fff;padding:14px 22px}
+header h1{margin:0;font-size:19px;letter-spacing:.06em}
+header p{margin:3px 0 0;font-size:12px;color:#A9C3DC}
+.tabs{display:flex;gap:4px;padding:8px 16px 0;background:var(--band);flex-wrap:wrap}
+.tab{background:#2A4E72;color:#C9DBEC;border:0;padding:7px 14px;border-radius:4px 4px 0 0;
+ cursor:pointer;font-size:12px;font-family:inherit}
+.tab.on{background:var(--paper);color:var(--band);font-weight:700}
+.tab.add{background:transparent;border:1px dashed #5B7FA3;color:#A9C3DC}
+.wrap{display:grid;grid-template-columns:330px 1fr;gap:16px;padding:16px;align-items:start}
+@media(max-width:900px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:4px;margin-bottom:14px}
+.card h2{margin:0;padding:10px 14px;font-size:13px;letter-spacing:.08em;
+ border-bottom:1px solid var(--line);background:#F2F5F8;color:var(--band)}
+.pad{padding:12px 14px}
+.blk{border-bottom:1px solid #EDF0F3}
+.blkhead{padding:7px 14px;font-size:12px;font-weight:700;color:var(--rail);background:#F7F9FB;
+ cursor:pointer;display:flex;justify-content:space-between;user-select:none}
+.blkbody{display:none;padding:2px 0 8px}.blk.open .blkbody{display:block}
+.sitem{display:flex;align-items:center;gap:8px;padding:4px 14px;font-size:13px}
+.sitem:hover{background:#F4F8FB}
+.sitem button{border:1px solid var(--line);background:#fff;border-radius:3px;cursor:pointer;
+ font-size:11px;padding:1px 7px;color:var(--rail)}
+.sitem button:hover{background:var(--rail);color:#fff}
+.sitem .tag{font-size:10px;color:var(--sub);margin-left:auto}
+.ctl{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-end}
+.ctl label{font-size:11px;color:var(--sub);display:block}
+.ctl input{width:76px;padding:5px 7px;border:1px solid var(--line);border-radius:3px;font-size:14px;font-family:inherit}
+.ctl input[type=date]{width:145px}.ctl input.w{width:150px}
+.btn{border:0;background:var(--rail);color:#fff;padding:8px 15px;border-radius:3px;cursor:pointer;
+ font-size:13px;font-family:inherit}
+.btn:hover{background:#17395a}
+.btn.ghost{background:#fff;color:var(--rail);border:1px solid var(--rail)}
+.btn.sm{padding:5px 10px;font-size:12px}
+.stops{list-style:none;margin:0;padding:0}
+.stops li{display:flex;align-items:center;gap:6px;padding:6px 12px;border-bottom:1px solid #EEF1F4;
+ font-size:13px;background:#fff;cursor:grab}
+.stops li.drag{opacity:.35}.stops li.over{border-top:2px solid var(--rail)}
+.stops li .grip{color:#9AA9B8;font-size:14px}
+.stops li .ord{width:20px;color:var(--sub);font-size:11px}.stops li .nm{flex:1}
+.stops li.ev{background:#FFF8E7}.stops li.ev .nm{color:var(--amber);font-weight:700}
+.mini{border:1px solid var(--line);background:#fff;border-radius:3px;cursor:pointer;font-size:11px;
+ padding:1px 6px;font-family:inherit}
+.mini:hover{background:#EEF3F8}
+.row{display:grid;grid-template-columns:78px 26px 1fr;align-items:stretch}
+.row .t{padding:6px 8px;text-align:right;font-size:13px;color:var(--band)}
+.row .rail{position:relative}
+.row .rail::before{content:"";position:absolute;left:11px;top:0;bottom:0;width:3px;background:#D3DCE5}
+.row.train .rail::before{background:var(--rail)}
+.row .dot{position:absolute;left:5px;top:9px;width:15px;height:15px;border-radius:50%;
+ background:#fff;border:3px solid var(--stop);z-index:1}
+.row .body{padding:6px 10px}
+.stopname{font-weight:700;font-size:14px}
+.meta{font-size:11px;color:var(--sub)}
+.trainbox{background:#F2F6FA;border-left:3px solid var(--rail);padding:5px 9px;margin:3px 0;font-size:12px}
+.trainbox b{color:var(--rail)}
+.evbox{background:#FFF8E7;border-left:3px solid var(--amber);padding:5px 9px;margin:3px 0;font-size:12px;color:var(--amber)}
+.miss{background:#FDF0EE;border-left:3px solid var(--stop);color:var(--stop);padding:5px 9px;margin:3px 0;font-size:12px}
+.walk{font-size:11px;color:var(--sub);padding:2px 0}
+.chk{display:inline-block;font-size:10px;color:var(--rail);border:1px solid #B8C7D6;border-radius:2px;
+ padding:0 6px;margin-left:5px;text-decoration:none;background:#fff}
+.chk:hover{background:var(--rail);color:#fff}
+.chk.w{border-color:#C9A227;color:#8A6212}.chk.w:hover{background:#8A6212;color:#fff}
+.ed{width:44px;padding:0 4px;border:1px dashed #9BB0C4;border-radius:2px;font-size:11px;
+ background:#FFFDF3;text-align:right;font-family:inherit}
+.ed.wide{width:130px;text-align:left}
+.ed:focus{border:1px solid var(--rail);background:#fff;outline:none}
+.stnsel{font-size:11px;font-family:inherit;border:1px solid #9BB0C4;border-radius:2px;
+ background:#F0F6FC;padding:0 2px;color:var(--rail);max-width:190px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th,td{border:1px solid var(--line);padding:5px 8px;text-align:left}
+th{background:#F2F5F8;font-size:11px;color:var(--band)}
+.empty{padding:30px 14px;color:var(--sub);font-size:13px;text-align:center}
+.warn{background:#FFF8E7;border:1px solid #E8D9A8;color:var(--amber);padding:8px 12px;font-size:12px;margin:0 14px 12px;border-radius:3px}
+.hint{font-size:11px;color:var(--sub);margin:6px 0 0}
+#msg{display:none;margin:10px 16px -4px;padding:8px 12px;background:#E2EFDA;border:1px solid #A9C9A4;
+ border-radius:3px;font-size:12px;color:#1F5C3D}
+.stnadd{width:96px!important;text-align:left!important}
+#links{display:none;padding:0 14px 12px}#links.on{display:block}
+#links a{display:block;padding:3px 0;font-size:12px;border-bottom:1px dotted #DCE3EA}
+</style>
+</head>
+<body>
+<header>
+  <h1>環境整備点検　ルートビルダー</h1>
+  <p>使う駅も選べます。空欄（自動）にしておくと、いちばん早い駅の組み合わせを自動で選びます</p>
+</header>
+<div class="tabs" id="tabs"></div>
+<div id="msg"></div>
+
+<div class="wrap">
+  <div>
+    <div class="card">
+      <h2>1. このコースの設定</h2>
+      <div class="pad ctl">
+        <div><label>コース名（日程・班）</label><input class="w" id="cname" onchange="setC('name',this.value)"></div>
+        <div><label>点検日</label><input id="cdate" type="date" onchange="setC('date',this.value)"></div>
+        <div><label>開始時刻</label><input id="cstart" onchange="setC('start',this.value)"></div>
+      </div>
+      <div class="pad" style="padding-top:0"><button class="btn ghost sm" id="delbtn" onclick="delC()">このコースを削除</button></div>
+    </div>
+    <div class="card">
+      <h2>2. 共通ルール</h2>
+      <div class="pad ctl">
+        <div><label>点検(分)</label><input id="insp" type="number" value="6"></div>
+        <div><label>乗車待ち(分)</label><input id="buf" type="number" value="4"></div>
+        <div><label>同駅の店間(分)</label><input id="same" type="number" value="3"></div>
+        <div><label>閉店の前倒し(分)</label><input id="close" type="number" value="180"></div>
+      </div>
+    </div>
+    <div class="card"><h2>3. 店舗を追加</h2><div id="picker"></div></div>
+    <div class="card">
+      <h2>4. イベントを追加</h2>
+      <div class="pad">
+        <button class="btn ghost sm" onclick="addEv('rest')">休憩</button>
+        <button class="btn ghost sm" onclick="addEv('quiz')">質問タイム（車内）</button>
+        <button class="btn ghost sm" onclick="addEv('jan')">シェアじゃんけん</button>
+      </div>
+    </div>
+    <div class="card">
+      <h2>5. 保存</h2>
+      <div class="pad">
+        <p class="hint" id="savest" style="margin:0 0 8px">…</p>
+        <button class="btn ghost sm" onclick="expAll()">バックアップを書き出す</button>
+        <input type="file" id="imp" accept=".json" style="display:none" onchange="impAll(event)">
+        <button class="btn ghost sm" onclick="document.getElementById('imp').click()">読み込む</button>
+        <button class="btn ghost sm" onclick="resetAll()">最初からやり直す</button>
+        <p class="hint" id="ovcount"></p>
+      </div>
+    </div>
+  </div>
+
+  <div>
+    <div class="card">
+      <h2>6. 巡回順（ドラッグで入れ替え）</h2>
+      <ul class="stops" id="stops"></ul>
+      <div class="pad"><button class="btn ghost sm" onclick="clearAll()">このコースを空にする</button></div>
+    </div>
+    <div class="card">
+      <h2>7. ざっくり出力（承認用）</h2>
+      <div class="pad">
+        <button class="btn" onclick="csvRough()">ざっくり版をExcelに出力</button>
+        <button class="btn ghost" onclick="csvFull()">詳細版（駅・号車・出口つき）</button>
+        <p class="hint">全コースまとめて1ファイルに出ます。</p>
+      </div>
+    </div>
+    <div class="card">
+      <h2>8. 当日スケジュール</h2>
+      <div class="pad" style="padding-bottom:6px">
+        <button class="btn ghost sm" onclick="toggleLinks()">全区間の確認リンクを一覧表示</button>
+      </div>
+      <div id="links"></div><div id="warn"></div>
+      <div id="sched"><div class="empty">左から店舗を追加してください。</div></div>
+    </div>
+    <div class="card">
+      <h2>9. 店舗発表用（閉店時刻つき）</h2>
+      <div class="pad" id="announce"></div>
+    </div>
+    <div class="card">
+      <h2>10. 運行表（書式つき・Excel／スプレッドシート貼り付け用）</h2>
+      <div class="pad">
+        <button class="btn" onclick="copyRich()">書式つきでコピー</button>
+        <button class="btn ghost" onclick="dlXls()">Excelファイルで保存</button>
+        <p class="hint">「書式つきでコピー」→ Excelやスプレッドシートにそのまま貼ると、色・罫線ごと入ります。</p>
+      </div>
+      <div class="pad" style="padding-top:0;overflow:auto" id="rich"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const DATA = {"stores": [{"id": "H1", "name": "本社（事務所）", "blk": "A", "stn": "東銀座", "stns": [{"s": "東銀座", "ex": "A3", "w": 4, "n": 5}, {"s": "銀座", "ex": "A12", "w": 7, "n": 3}], "ex": "A3", "walk": 4, "n": 11, "note": "", "addr": "東京都中央区銀座3-13-11", "wsp": 8, "exn": 5}, {"id": "23", "name": "東銀座はるちゃん（総本店）", "blk": "A", "stn": "東銀座", "stns": [{"s": "東銀座", "ex": "A3", "w": 4, "n": 2}, {"s": "銀座", "ex": "A12", "w": 7, "n": 1}], "ex": "A3", "walk": 4, "n": 3, "note": "", "addr": "東京都中央区銀座3-11-6", "wsp": 3, "exn": 2}, {"id": "10", "name": "新橋ニューともちん", "blk": "A", "stn": "新橋", "stns": [{"s": "新橋", "ex": "A２", "w": 3, "n": 3}], "ex": "A２", "walk": 3, "n": 3, "note": "", "addr": "東京都港区新橋2-20-15", "wsp": 0, "exn": 2}, {"id": "11", "name": "新橋はるちゃん", "blk": "A", "stn": "新橋", "stns": [{"s": "新橋", "ex": "A3", "w": 4, "n": 4}, {"s": "川口", "ex": "東口", "w": 6, "n": 2}], "ex": "東口", "walk": 5, "n": 6, "note": "", "addr": "東京都港区新橋2-20-15", "wsp": 3, "exn": 4}, {"id": "46", "name": "ニュー新橋 高円寺ともちん", "blk": "A", "stn": "新橋", "stns": [{"s": "新橋", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "8/20オープン", "addr": "東京都港区新橋2-16-1", "wsp": 0, "exn": 0}, {"id": "7", "name": "虎ノ門たきちゃん", "blk": "A", "stn": "虎ノ門", "stns": [{"s": "虎ノ門", "ex": "虎ノ門ヒル", "w": 6, "n": 5}], "ex": "虎ノ門ヒル", "walk": 6, "n": 5, "note": "", "addr": "東京都港区虎ノ門1-17-1", "wsp": 1, "exn": 1}, {"id": "16", "name": "神田ちえちゃん", "blk": "B", "stn": "神田", "stns": [{"s": "神田", "ex": "2", "w": 4, "n": 7}], "ex": "2", "walk": 4, "n": 7, "note": "", "addr": "東京都千代田区鍛冶町2-13-7", "wsp": 2, "exn": 4}, {"id": "25", "name": "神保町ニューともちん", "blk": "B", "stn": "神保町", "stns": [{"s": "神保町", "ex": "A5", "w": 4, "n": 5}], "ex": "A5", "walk": 4, "n": 5, "note": "", "addr": "東京都千代田区神田神保町1-12", "wsp": 2, "exn": 2}, {"id": "S2", "name": "神保町 煮干（凪）", "blk": "B", "stn": "神保町", "stns": [{"s": "神保町", "ex": "A5", "w": 4, "n": 1}], "ex": "A5", "walk": 4, "n": 1, "note": "", "addr": "東京都千代田区神田神保町2-24", "wsp": 0, "exn": 1}, {"id": "33", "name": "浅草橋なぎちゃん", "blk": "B", "stn": "浅草橋", "stns": [{"s": "浅草橋", "ex": "A1", "w": 3, "n": 4}], "ex": "A1", "walk": 3, "n": 4, "note": "", "addr": "東京都台東区柳橋1-13-3", "wsp": 5, "exn": 2}, {"id": "13", "name": "両国邦ちゃん", "blk": "C", "stn": "両国", "stns": [{"s": "両国", "ex": "東口", "w": 2, "n": 7}], "ex": "東口", "walk": 2, "n": 7, "note": "", "addr": "東京都墨田区横網1-3-1", "wsp": 0, "exn": 1}, {"id": "36", "name": "錦糸町なぎちゃん", "blk": "C", "stn": "錦糸町", "stns": [{"s": "錦糸町", "ex": "南口", "w": 5, "n": 6}], "ex": "南口", "walk": 5, "n": 6, "note": "", "addr": "東京都墨田区江東橋2-17-1", "wsp": 2, "exn": 1}, {"id": "6", "name": "新小岩邦ちゃん", "blk": "C", "stn": "新小岩", "stns": [{"s": "新小岩", "ex": "南口", "w": 6, "n": 6}], "ex": "南口", "walk": 6, "n": 6, "note": "", "addr": "東京都葛飾区新小岩1-50-9", "wsp": 0, "exn": 1}, {"id": "19", "name": "浅草生田庵", "blk": "C", "stn": "浅草", "stns": [{"s": "浅草", "ex": "8", "w": 4, "n": 4}, {"s": "川口", "ex": "東口", "w": 6, "n": 1}], "ex": "8", "walk": 4, "n": 5, "note": "", "addr": "東京都台東区花川戸1-6-4", "wsp": 4, "exn": 4}, {"id": "12", "name": "シンちゃん（新宿南口）", "blk": "D", "stn": "新宿", "stns": [{"s": "新宿", "ex": "南口", "w": 5, "n": 3}, {"s": "錦糸町", "ex": "南口", "w": 4, "n": 1}], "ex": "南口", "walk": 5, "n": 4, "note": "", "addr": "東京都新宿区新宿4-2-7", "wsp": 2, "exn": 1}, {"id": "1", "name": "新宿ゴールデン街本館", "blk": "D", "stn": "新宿", "stns": [{"s": "新宿", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "", "addr": "東京都新宿区歌舞伎町1-1-10", "wsp": 0, "exn": 0}, {"id": "5", "name": "新宿ナギチャン", "blk": "D", "stn": "新宿", "stns": [{"s": "新宿", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "", "addr": "東京都新宿区歌舞伎町1-9-6", "wsp": 0, "exn": 0}, {"id": "17", "name": "新館えっちゃん", "blk": "D", "stn": "新宿", "stns": [{"s": "新宿", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "", "addr": "東京都新宿区歌舞伎町1-15-8", "wsp": 0, "exn": 0}, {"id": "2", "name": "西新宿7丁目", "blk": "D", "stn": "大久保", "stns": [{"s": "大久保", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "", "addr": "東京都新宿区西新宿7-13-7", "wsp": 0, "exn": 0}, {"id": "9", "name": "小滝橋クマちゃん", "blk": "D", "stn": "大久保", "stns": [{"s": "大久保", "ex": "南口", "w": 7, "n": 2}, {"s": "新宿", "ex": "西口", "w": 11, "n": 1}], "ex": "南口", "walk": 7, "n": 3, "note": "", "addr": "東京都新宿区西新宿7-5-6", "wsp": 4, "exn": 2}, {"id": "35", "name": "高田馬場なぎちゃん", "blk": "D", "stn": "高田馬場", "stns": [{"s": "高田馬場", "ex": "早稲田", "w": 4, "n": 6}], "ex": "早稲田", "walk": 4, "n": 6, "note": "", "addr": "東京都新宿区高田馬場4-8-8", "wsp": 1, "exn": 2}, {"id": "21", "name": "中野邦ちゃん", "blk": "E", "stn": "中野", "stns": [{"s": "中野", "ex": "南口", "w": 5, "n": 4}, {"s": "中野三丁目", "ex": "ー", "w": 3, "n": 1}], "ex": "南口", "walk": 5, "n": 5, "note": "", "addr": "東京都中野区中野2-28-8", "wsp": 3, "exn": 2}, {"id": "43", "name": "東高円寺なぎちゃん", "blk": "E", "stn": "東高円寺", "stns": [{"s": "東高円寺", "ex": "B1", "w": 3, "n": 1}], "ex": "B1", "walk": 3, "n": 1, "note": "", "addr": "東京都杉並区和田3-58-7", "wsp": 0, "exn": 1}, {"id": "8", "name": "高円寺ともちん", "blk": "E", "stn": "高円寺", "stns": [{"s": "高円寺", "ex": "西口", "w": 5, "n": 7}], "ex": "西口", "walk": 5, "n": 7, "note": "", "addr": "東京都杉並区高円寺北2-21-4", "wsp": 0, "exn": 2}, {"id": "30", "name": "西荻窪なぎちゃん", "blk": "E", "stn": "西荻窪", "stns": [{"s": "西荻窪", "ex": "南口", "w": 2, "n": 6}], "ex": "南口", "walk": 2, "n": 6, "note": "", "addr": "東京都杉並区西荻南3-10-5", "wsp": 0, "exn": 1}, {"id": "18", "name": "池袋ひろちゃん", "blk": "F", "stn": "池袋", "stns": [{"s": "池袋", "ex": "西口中央", "w": 10, "n": 7}], "ex": "西口中央", "walk": 10, "n": 7, "note": "", "addr": "東京都豊島区西池袋1-39-1", "wsp": 4, "exn": 2}, {"id": "40", "name": "西池袋ニューともちん", "blk": "F", "stn": "池袋", "stns": [{"s": "池袋", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "", "addr": "東京都豊島区西池袋1-20-2", "wsp": 0, "exn": 0}, {"id": "34", "name": "江古田なぎちゃん", "blk": "F", "stn": "江古田", "stns": [{"s": "江古田", "ex": "南口", "w": 3, "n": 6}], "ex": "南口", "walk": 3, "n": 6, "note": "", "addr": "東京都練馬区旭丘1-76-4", "wsp": 0, "exn": 1}, {"id": "44", "name": "駒込なぎちゃん", "blk": "F", "stn": "駒込", "stns": [{"s": "駒込", "ex": "東口", "w": 2, "n": 1}], "ex": "東口", "walk": 2, "n": 1, "note": "", "addr": "東京都北区中里2-1-10", "wsp": 0, "exn": 1}, {"id": "H2", "name": "ファクトリー 達磨製麺", "blk": "F", "stn": "本蓮沼", "stns": [{"s": "本蓮沼", "ex": "A2", "w": 11, "n": 4}, {"s": "赤羽", "ex": "前野町四丁目", "w": 8, "n": 1}], "ex": "A2", "walk": 11, "n": 5, "note": "", "addr": "東京都板橋区大原町45-17", "wsp": 3, "exn": 4}, {"id": "37", "name": "渋谷 麺屋我ガ", "blk": "G", "stn": "渋谷", "stns": [{"s": "渋谷", "ex": "井の頭中央口", "w": 15, "n": 1}, {"s": "表参道", "ex": "B1", "w": 11, "n": 1}], "ex": "井の頭中央口", "walk": 13, "n": 2, "note": "", "addr": "東京都渋谷区渋谷2-8-8", "wsp": 4, "exn": 2}, {"id": "4", "name": "渋谷 BUTAO", "blk": "G", "stn": "渋谷", "stns": [{"s": "渋谷", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "", "addr": "東京都渋谷区東1-3-1", "wsp": 0, "exn": 0}, {"id": "20", "name": "渋谷かっちゃん", "blk": "G", "stn": "渋谷", "stns": [{"s": "渋谷", "ex": "西口", "w": 8, "n": 5}], "ex": "西口", "walk": 8, "n": 5, "note": "", "addr": "東京都渋谷区桜丘町3-4", "wsp": 4, "exn": 2}, {"id": "S1", "name": "下北沢なおちゃん", "blk": "G", "stn": "下北沢", "stns": [{"s": "下北沢", "ex": "南口", "w": 5, "n": 6}], "ex": "南口", "walk": 5, "n": 6, "note": "", "addr": "東京都世田谷区北沢2-12-7", "wsp": 2, "exn": 3}, {"id": "47", "name": "成城学園前なぎちゃん", "blk": "G", "stn": "成城学園前", "stns": [{"s": "成城学園前", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "9/4オープン", "addr": "東京都世田谷区成城6-9-7", "wsp": 0, "exn": 0}, {"id": "38", "name": "五反田ニューともちん", "blk": "H", "stn": "五反田", "stns": [{"s": "五反田", "ex": "東口", "w": 4, "n": 2}], "ex": "東口", "walk": 4, "n": 2, "note": "", "addr": "東京都品川区東五反田1-14-9", "wsp": 2, "exn": 2}, {"id": "F3", "name": "武蔵小山（FC）", "blk": "H", "stn": "武蔵小山", "stns": [{"s": "武蔵小山", "ex": "東口", "w": 4, "n": 6}], "ex": "東口", "walk": 4, "n": 6, "note": "", "addr": "東京都品川区小山3-22-19", "wsp": 0, "exn": 1}, {"id": "F2", "name": "青物横丁（FC）", "blk": "H", "stn": "青物横丁", "stns": [{"s": "青物横丁", "ex": "西口", "w": 3, "n": 7}, {"s": "浅草", "ex": "西口", "w": 3, "n": 1}], "ex": "西口", "walk": 3, "n": 8, "note": "", "addr": "東京都品川区南品川2-4-3", "wsp": 2, "exn": 2}, {"id": "15", "name": "田町えっちゃん", "blk": "H", "stn": "田町", "stns": [{"s": "田町", "ex": "東口(芝浦)", "w": 4, "n": 7}], "ex": "東口(芝浦)", "walk": 4, "n": 7, "note": "", "addr": "東京都港区芝浦3-1-30", "wsp": 1, "exn": 2}, {"id": "29", "name": "田町油そばセンター", "blk": "H", "stn": "田町", "stns": [{"s": "田町", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "", "addr": "東京都港区芝浦3-1-32", "wsp": 0, "exn": 0}, {"id": "28", "name": "大森なぎちゃん", "blk": "H", "stn": "大森", "stns": [{"s": "大森", "ex": "西口", "w": 3, "n": 6}], "ex": "西口", "walk": 3, "n": 6, "note": "", "addr": "東京都大田区山王2-2-6", "wsp": 0, "exn": 1}, {"id": "27", "name": "蒲田ニューともちん", "blk": "H", "stn": "蒲田", "stns": [{"s": "蒲田", "ex": "西口", "w": 3, "n": 5}], "ex": "西口", "walk": 3, "n": 5, "note": "", "addr": "東京都大田区西蒲田7-2-3", "wsp": 1, "exn": 1}, {"id": "31", "name": "蒲田 煮干王", "blk": "H", "stn": "蒲田", "stns": [{"s": "蒲田", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "", "addr": "東京都大田区西蒲田7-5-5", "wsp": 0, "exn": 0}, {"id": "F1", "name": "京急蒲田（FC）", "blk": "H", "stn": "京急蒲田", "stns": [{"s": "京急蒲田", "ex": "西口", "w": 3, "n": 6}], "ex": "西口", "walk": 3, "n": 6, "note": "", "addr": "東京都大田区蒲田4-18-8", "wsp": 2, "exn": 1}, {"id": "22", "name": "川崎ニューともちん", "blk": "I", "stn": "京急川崎", "stns": [{"s": "京急川崎", "ex": "中央口", "w": 4, "n": 3}, {"s": "川崎", "ex": "中央口", "w": 3, "n": 2}], "ex": "中央口", "walk": 4, "n": 5, "note": "", "addr": "神奈川県川崎市川崎区駅前本町8-19", "wsp": 1, "exn": 1}, {"id": "41", "name": "川崎西口（大宮町）", "blk": "I", "stn": "川崎", "stns": [{"s": "川崎", "ex": "中央口", "w": 7, "n": 1}], "ex": "中央口", "walk": 7, "n": 1, "note": "", "addr": "神奈川県川崎市幸区大宮町5-3", "wsp": 0, "exn": 1}, {"id": "26", "name": "元住吉なぎちゃん", "blk": "I", "stn": "元住吉", "stns": [{"s": "元住吉", "ex": "西口", "w": 5, "n": 6}], "ex": "西口", "walk": 5, "n": 6, "note": "", "addr": "神奈川県川崎市中原区木月1-33-1", "wsp": 1, "exn": 1}, {"id": "F4", "name": "菊名（FC）", "blk": "I", "stn": "菊名", "stns": [{"s": "菊名", "ex": "東口", "w": 4, "n": 4}], "ex": "東口", "walk": 4, "n": 4, "note": "", "addr": "神奈川県横浜市港北区菊名6-1-7", "wsp": 2, "exn": 2}, {"id": "32", "name": "白楽なぎちゃん", "blk": "I", "stn": "白楽", "stns": [{"s": "白楽", "ex": "西口", "w": 1, "n": 6}], "ex": "西口", "walk": 1, "n": 6, "note": "", "addr": "神奈川県横浜市神奈川区白楽100-11", "wsp": 1, "exn": 2}, {"id": "45", "name": "杉田なぎちゃん（新杉田）", "blk": "I", "stn": "新杉田", "stns": [{"s": "新杉田", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "", "addr": "神奈川県横浜市磯子区杉田1-10-4", "wsp": 0, "exn": 0}, {"id": "48", "name": "高座渋谷なぎちゃん", "blk": "I", "stn": "高座渋谷", "stns": [{"s": "高座渋谷", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "9/25オープン", "addr": "神奈川県大和市渋谷5-4-29", "wsp": 0, "exn": 0}, {"id": "49", "name": "青葉台なぎちゃん", "blk": "I", "stn": "青葉台", "stns": [{"s": "青葉台", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "10/16オープン", "addr": "神奈川県横浜市青葉区青葉台1-14-1", "wsp": 0, "exn": 0}, {"id": "3", "name": "大宮東口 凪", "blk": "J", "stn": "大宮", "stns": [{"s": "大宮", "ex": "東口", "w": 6, "n": 3}], "ex": "東口", "walk": 6, "n": 3, "note": "", "addr": "埼玉県さいたま市大宮区大門町1-24-1", "wsp": 0, "exn": 1}, {"id": "14", "name": "川口トラちゃん", "blk": "J", "stn": "川口", "stns": [{"s": "川口", "ex": "東口", "w": 6, "n": 5}], "ex": "東口", "walk": 6, "n": 5, "note": "", "addr": "埼玉県川口市栄町3-9-16", "wsp": 0, "exn": 1}, {"id": "51", "name": "川越なぎちゃん", "blk": "J", "stn": "本川越", "stns": [{"s": "本川越", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "9/16オープン", "addr": "埼玉県川越市新富町1-19-5", "wsp": 0, "exn": 0}, {"id": "24", "name": "行徳なぎちゃん", "blk": "K", "stn": "行徳", "stns": [{"s": "行徳", "ex": "中央口", "w": 1, "n": 5}], "ex": "中央口", "walk": 1, "n": 5, "note": "", "addr": "千葉県市川市行徳駅前2-3-1", "wsp": 2, "exn": 2}, {"id": "42", "name": "西船橋なぎちゃん", "blk": "K", "stn": "西船橋", "stns": [{"s": "西船橋", "ex": "北口", "w": 5, "n": 2}], "ex": "北口", "walk": 5, "n": 2, "note": "", "addr": "千葉県船橋市西船4-24-5", "wsp": 0, "exn": 1}, {"id": "50", "name": "本八幡なぎちゃん", "blk": "K", "stn": "本八幡", "stns": [{"s": "本八幡", "ex": "", "w": 5, "n": 0}], "ex": "", "walk": null, "n": 0, "note": "10/28オープン", "addr": "千葉県市川市八幡2-4-10", "wsp": 0, "exn": 0}, {"id": "39", "name": "八王子なぎちゃん", "blk": "L", "stn": "八王子", "stns": [{"s": "八王子", "ex": "北口", "w": 8, "n": 4}], "ex": "北口", "walk": 8, "n": 4, "note": "", "addr": "東京都八王子市中町8-1", "wsp": 2, "exn": 1}, {"id": "HJ", "name": "拝島なぎちゃん（存続要確認）", "blk": "L", "stn": "拝島", "stns": [{"s": "拝島", "ex": "北口", "w": 2, "n": 1}], "ex": "北口", "walk": 2, "n": 1, "note": "要確認", "addr": "", "wsp": 0, "exn": 1}], "segs": {"蒲田>大森": {"d": 3, "line": "京浜東北線", "car": "10両編成 ４、６号車", "track": "3/4番線 大宮行急行", "via": "", "n": 8, "amb": 1, "spread": 1, "fresh": 1}, "大森>田町": {"d": 11, "line": "京浜東北線", "car": "10両編成  8号車、10号車", "track": "2番線 大宮行", "via": "", "n": 7, "amb": 1, "spread": 2, "fresh": 1}, "江古田>池袋": {"d": 7, "line": "池袋線（SI線）", "car": "8両編成  1号車", "track": "2番線  池袋行き普通", "via": "", "n": 7, "amb": 0, "spread": 2, "fresh": 1}, "下北沢>渋谷": {"d": 7, "line": "井の頭線", "car": "5両編成  1号車", "track": "2番線  渋谷行き急行", "via": "", "n": 6, "amb": 1, "spread": 3, "fresh": 1}, "川口>大宮": {"d": 21, "line": "JR京浜東北線", "car": "10両編成  6号車", "track": "2番線 大宮行", "via": "", "n": 6, "amb": 1, "spread": 1, "fresh": 1}, "渋谷>虎ノ門": {"d": 8, "line": "銀座線", "car": "6両編成 5号車", "track": "1/2番線 浅草行 普通", "via": "", "n": 6, "amb": 1, "spread": 11, "fresh": 1}, "高円寺>西荻窪": {"d": 7, "line": "中央線", "car": "10両編成  4号車", "track": "3番線 青梅行 快速", "via": "", "n": 6, "amb": 1, "spread": 4, "fresh": 1}, "両国>錦糸町": {"d": 3, "line": "JR総武線", "car": "10両編成  5、8号車", "track": "2番線 千葉行 普通", "via": "", "n": 5, "amb": 1, "spread": 60, "fresh": 1}, "中野>高円寺": {"d": 2, "line": "JR総武線", "car": "10両編成 4号車", "track": "6番線 高尾行 急行", "via": "", "n": 5, "amb": 1, "spread": 2, "fresh": 1}, "大宮>川口": {"d": 22, "line": "JR京浜東北線", "car": "10両編成  4号車", "track": "1/2番線 大船行 急行", "via": "", "n": 5, "amb": 0, "spread": 2, "fresh": 0}, "本蓮沼>江古田": {"d": 38, "line": "三田線", "car": "6両編成  3号車", "track": "1番線  日吉行き普通", "via": "巣鴨 > 池袋", "n": 5, "amb": 1, "spread": 9, "fresh": 0}, "池袋>高田馬場": {"d": 4, "line": "山手線", "car": "11両編成  5号車", "track": "6番線  新宿行き 普通", "via": "", "n": 5, "amb": 1, "spread": 0, "fresh": 0}, "浅草橋>両国": {"d": 2, "line": "JR総武線", "car": "10両編成 4号車", "track": "2番線 千葉行 普通", "via": "", "n": 5, "amb": 0, "spread": 0, "fresh": 1}, "白楽>元住吉": {"d": 15, "line": "東横線", "car": "8両編成 1両目", "track": "5/6番線和光市行", "via": "", "n": 5, "amb": 1, "spread": 9, "fresh": 0}, "神田>浅草": {"d": 11, "line": "銀座線", "car": "10両編成 5両目", "track": "2番線 浅草行 普通", "via": "", "n": 5, "amb": 1, "spread": 3, "fresh": 1}, "錦糸町>新小岩": {"d": 7, "line": "JR総武線", "car": "11両編成 15両編成 3、6号車", "track": "2番線 津田沼行 普通", "via": "", "n": 5, "amb": 1, "spread": 4, "fresh": 1}, "青物横丁>京急蒲田": {"d": 6, "line": "京急線", "car": "８両編成  4号車", "track": "1番線 三崎口行 急行", "via": "", "n": 5, "amb": 1, "spread": 2, "fresh": 1}, "京急蒲田>京急川崎": {"d": 5, "line": "京急線", "car": "８両編成  4号車", "track": "1番線 京急久里浜行特急", "via": "", "n": 4, "amb": 1, "spread": 10, "fresh": 1}, "元住吉>武蔵小山": {"d": 16, "line": "目黒線", "car": "8両編成 2両目", "track": "4番線 浦和美園行普通", "via": "", "n": 4, "amb": 1, "spread": 0, "fresh": 1}, "新橋>東銀座": {"d": 1, "line": "浅草線", "car": "8両編成 4両目", "track": "2番線 京成佐倉行 急行", "via": "", "n": 4, "amb": 1, "spread": 1, "fresh": 1}, "東銀座>新橋": {"d": 1, "line": "浅草線", "car": "8両編成 6号車", "track": "1番線 西馬込行", "via": "", "n": 4, "amb": 1, "spread": 1, "fresh": 1}, "両国>浅草橋": {"d": 2, "line": "JR総武線", "car": "10両編成 1号車", "track": "1番線 三鷹沼行 普通", "via": "", "n": 3, "amb": 0, "spread": 0, "fresh": 0}, "京急川崎>白楽": {"d": 22, "line": "京急線", "car": "8両編成 2両目", "track": "4/5番線三崎口行特急", "via": "横浜", "n": 3, "amb": 1, "spread": 9, "fresh": 1}, "大久保>中野": {"d": 5, "line": "JR総武線", "car": "10両編成  8号車", "track": "1番線  三中野鷹行き普通", "via": "", "n": 3, "amb": 0, "spread": 0, "fresh": 0}, "新宿>下北沢": {"d": 7, "line": "小田急線", "car": "10両編成  4号車", "track": "4/5番線 小田原行き急行", "via": "", "n": 3, "amb": 0, "spread": 0, "fresh": 1}, "新小岩>西船橋": {"d": 14, "line": "JR総武線", "car": "10両編成 4号車", "track": "2番線 千葉行 普通", "via": "", "n": 3, "amb": 0, "spread": 0, "fresh": 1}, "新小岩>錦糸町": {"d": 7, "line": "JR総武線", "car": "10両編成 ５両目", "track": "1番線 三鷹沼行 普通", "via": "", "n": 3, "amb": 0, "spread": 1, "fresh": 0}, "新小岩>行徳": {"d": 26, "line": "JR総武線", "car": "10両編成 2号車", "track": "2番線 千葉行 普通", "via": "西船橋", "n": 3, "amb": 0, "spread": 2, "fresh": 0}, "新橋>青物横丁": {"d": 13, "line": "浅草線", "car": "8両編成 4両目", "track": "1番線 羽田行 急行", "via": "", "n": 3, "amb": 1, "spread": 2, "fresh": 1}, "武蔵小山>元住吉": {"d": 16, "line": "目黒線", "car": "6,8両編成   1号車", "track": "1/2番線  新横浜行", "via": "", "n": 3, "amb": 1, "spread": 1, "fresh": 1}, "武蔵小山>蒲田": {"d": 24, "line": "目黒線", "car": "8両編成 4両目", "track": "1/2番線 日吉行普通", "via": "多摩川", "n": 3, "amb": 0, "spread": 9, "fresh": 0}, "江古田>本蓮沼": {"d": 33, "line": "池袋線（SI線）", "car": "8両編成  8号車", "track": "2番線 池袋行", "via": "池袋 > 巣鴨", "n": 3, "amb": 0, "spread": 3, "fresh": 1}, "浅草>浅草橋": {"d": 3, "line": "浅草線", "car": "8両編成 5両目", "track": "1番線 羽田空港行急行", "via": "", "n": 3, "amb": 1, "spread": 0, "fresh": 1}, "浅草>東銀座": {"d": 12, "line": "浅草線", "car": "8両編成 8両目", "track": "1番線 久里浜行急行", "via": "", "n": 3, "amb": 1, "spread": 0, "fresh": 1}, "田町>神田": {"d": 11, "line": "山手線", "car": "10両編成 6両目", "track": "2番線 東京行普通", "via": "", "n": 3, "amb": 0, "spread": 10, "fresh": 1}, "白楽>菊名": {"d": 4, "line": "東横線", "car": "８両編成  8号車", "track": "2番線池袋行普通]", "via": "", "n": 3, "amb": 1, "spread": 0, "fresh": 1}, "虎ノ門>銀座": {"d": 7, "line": "銀座線", "car": "6両編成 6両目", "track": "2番線浅草行 普通", "via": "", "n": 3, "amb": 0, "spread": 3, "fresh": 1}, "行徳>新小岩": {"d": 29, "line": "東西線", "car": "10両編成  2号車", "track": "１番線 西船橋行普通", "via": "西船橋", "n": 3, "amb": 0, "spread": 4, "fresh": 0}, "西船橋>行徳": {"d": 8, "line": "東西線", "car": "10両編成  5、6号車", "track": "6/7番線 中野行普通", "via": "", "n": 3, "amb": 1, "spread": 0, "fresh": 1}, "西荻窪>高円寺": {"d": 6, "line": "JR中央線", "car": "10両編成 4号車", "track": "4番線 東京 急行", "via": "", "n": 3, "amb": 0, "spread": 1, "fresh": 1}, "錦糸町>両国": {"d": 3, "line": "JR総武線", "car": "10両編成 4号車", "track": "1番線 三鷹沼行 普通", "via": "", "n": 3, "amb": 0, "spread": 1, "fresh": 0}, "高円寺>中野": {"d": 2, "line": "JR中央線", "car": "10両編成  8号車", "track": "4番線 東京 急行", "via": "", "n": 3, "amb": 0, "spread": 1, "fresh": 1}, "高田馬場>新宿": {"d": 5, "line": "JR山手線", "car": "11両編成  10号車", "track": "2番線  新宿行き 普通", "via": "", "n": 3, "amb": 0, "spread": 0, "fresh": 0}, "三田>青物横丁": {"d": 8, "line": "1番線 羽田空港行", "car": "", "track": "※※ 確認 ※※ 乗車位置 後部", "via": "", "n": 2, "amb": 0, "spread": 0, "fresh": 0}, "中野>大久保": {"d": 4, "line": "JR総武線", "car": "10両編成 4号車", "track": "5番線  千葉行き 普通", "via": "", "n": 2, "amb": 0, "spread": 0, "fresh": 1}, "京急蒲田>青物横丁": {"d": 6, "line": "京急線", "car": "8両編成  5号車", "track": "4番線  成田行き 急行", "via": "", "n": 2, "amb": 0, "spread": 0, "fresh": 0}, "元住吉>菊名": {"d": 8, "line": "東横線 各停", "car": "８両編成  8号車", "track": "2番線 元町中華街行", "via": "", "n": 2, "amb": 0, "spread": 0, "fresh": 1}, "八王子>西荻窪": {"d": 34, "line": "JR中央線", "car": "10両編成 4号車", "track": "2番線 東京 急行", "via": "", "n": 2, "amb": 0, "spread": 0, "fresh": 1}, "川口>赤羽駅": {"d": 9, "line": "JR京浜東北線", "car": "10両編成  6号車", "track": "1/2番線 大宮行急行", "via": "", "n": 2, "amb": 0, "spread": 11, "fresh": 0}, "川口>赤羽": {"d": 4, "line": "京浜東北線", "car": "10両編成  6号車", "track": "1/2番線 大宮行", "via": "", "n": 2, "amb": 0, "spread": 0, "fresh": 0}, "川崎>蒲田": {"d": 5, "line": "京浜東北線", "car": "10両編成 4両目", "track": "4番線 大宮行急行", "via": "", "n": 2, "amb": 1, "spread": 0, "fresh": 1}, "川崎>白楽": {"d": 26, "line": "京急線", "car": "8両編成 2両目", "track": "4/5番線 金沢文庫行 急行", "via": "横浜", "n": 2, "amb": 0, "spread": 2, "fresh": 0}, "本蓮沼>駒込": {"d": 16, "line": "三田線 各停", "car": "8両編成 5，7号車\n6両編成 4，6号車", "track": "1番線 日吉行", "via": "巣鴨", "n": 2, "amb": 0, "spread": 0, "fresh": 1}, "池袋>江古田": {"d": 6, "line": "池袋線 各停", "car": "8両編成 ５，7号車", "track": "3番線 保谷行", "via": "", "n": 2, "amb": 1, "spread": 1, "fresh": 1}, "渋谷>下北沢": {"d": 5, "line": "井の頭線", "car": "5両編成 3号車", "track": "1/2番線 吉祥寺行き", "via": "", "n": 2, "amb": 0, "spread": 1, "fresh": 1}, "田町>新橋": {"d": 4, "line": "山手線", "car": "10両編成 6両目", "track": "2番線 東京行普通", "via": "", "n": 2, "amb": 1, "spread": 1, "fresh": 1}, "神保町>神田": {"d": 12, "line": "半蔵門線", "car": "10両編成 1号車", "track": "6番線 押上行", "via": "三越前", "n": 2, "amb": 0, "spread": 4, "fresh": 0}, "神田>銀座": {"d": 6, "line": "銀座線", "car": "6両編成 5両目", "track": "2番線渋谷行 普通", "via": "", "n": 2, "amb": 1, "spread": 1, "fresh": 1}, "菊名>白楽": {"d": 4, "line": "東横線 各停", "car": "8両編成 5号車", "track": "3/4番線 元町中華街行", "via": "", "n": 2, "amb": 1, "spread": 0, "fresh": 1}, "虎ノ門>神田": {"d": 10, "line": "銀座線", "car": "6両編成  1号車", "track": "2番線 普通", "via": "", "n": 2, "amb": 1, "spread": 0, "fresh": 1}, "行徳>神保町": {"d": 37, "line": "東西線", "car": "10両編成  2号車", "track": "2番線  三鷹行き 普通", "via": "九段下", "n": 2, "amb": 0, "spread": 2, "fresh": 1}, "西荻窪>拝島": {"d": 42, "line": "中央線", "car": "10両編成 6号車", "track": "3番線 青梅行 快速", "via": "", "n": 2, "amb": 0, "spread": 4, "fresh": 1}, "西荻窪>下北沢": {"d": 24, "line": "中央線", "car": "10両編成  6号車", "track": "3番線 立川行き", "via": "吉祥寺", "n": 2, "amb": 0, "spread": 0, "fresh": 0}, "赤羽>川口": {"d": 3, "line": "京浜東北線", "car": "10両編成  6号車", "track": "1/2番線 大宮行 急行", "via": "", "n": 2, "amb": 0, "spread": 0, "fresh": 1}, "銀座>八王子": {"d": 72, "line": "丸ノ内線", "car": "6両編成 1号車", "track": "3番線 中目黒行 普通", "via": "四ツ谷", "n": 2, "amb": 0, "spread": 0, "fresh": 1}, "青物横丁>新橋": {"d": 14, "line": "京急線", "car": "8両編成  ５号車", "track": "2番線  成田行き 急行", "via": "", "n": 2, "amb": 0, "spread": 1, "fresh": 0}, "高田馬場>池袋": {"d": 4, "line": "山手線", "car": "11両編成 2号車", "track": "1番線 池袋・上野方面", "via": "", "n": 2, "amb": 1, "spread": 0, "fresh": 1}, "高田馬場>神保町": {"d": 13, "line": "東西線", "car": "10両編成 2号車", "track": "１番線 西船橋行普通", "via": "九段下", "n": 2, "amb": 0, "spread": 1, "fresh": 0}, "三田>東銀座": {"d": 6, "line": "浅草線", "car": "8両編成 1両目", "track": "2番線 印旛日本医大行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "下北>渋谷": {"d": 4, "line": "井の頭線", "car": "5両編成 5号車", "track": "2番線 急行 渋谷行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "下北沢>新宿": {"d": 8, "line": "小田急線", "car": "10両編成  4号車", "track": "2番線  新宿行き", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "下北沢>西荻窪": {"d": 21, "line": "1番線 吉祥寺 (急行)", "car": "", "track": "※※ 確認 ※※", "via": "吉祥寺", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "両国>神保町": {"d": 11, "line": "三田線 各停", "car": "6,8両編成   1号車", "track": "4番線 にしたかしま行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "両国>新小岩": {"d": 10, "line": "総武線", "car": "10両編成 6号車", "track": "2番線 千葉行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "中野>東銀座": {"d": 32, "line": "5番線 西船橋行", "car": "", "track": "10両編成 1号車", "via": "日本橋", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "九段下>高田馬場": {"d": 9, "line": "2番線 三鷹行", "car": "", "track": "10両編成10号車", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "五反田>田町": {"d": 10, "line": "山手線", "car": "10両編成 8両目", "track": "2番線 品川 普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "五反田>武蔵小山": {"d": 14, "line": "山手線", "car": "11両編成  10号車", "track": "2番線 新宿行普通", "via": "目黒", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "京急川崎>京急蒲田": {"d": 3, "line": "6/7番線 品川行", "car": "", "track": "後部", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "京急蒲田>川崎": {"d": 4, "line": "京急線", "car": "８両編成  4号車", "track": "1番線 逗子葉山行急行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "京急蒲田>新橋": {"d": 2, "line": "京急線", "car": "8両編成  1号車", "track": "２番線  成田行き急行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "元住吉>白楽": {"d": 16, "line": "東横線", "car": "8両編成 5両目", "track": "2番線 元町行 普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "元住吉>武蔵小杉": {"d": 17, "line": "4番線 西高島平行", "car": "", "track": "", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "元住吉>川崎": {"d": 21, "line": "5番線 渋谷行", "car": "", "track": "8両編成 3両目", "via": "武蔵小杉", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "八王子>高田馬場": {"d": 56, "line": "JR中央線", "car": "10両編成 10両目", "track": "2番線 東京行", "via": "四ツ谷駅", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "八王子>新宿": {"d": 37, "line": "JR中央線", "car": "10両編成 8両目", "track": "2番線 東京行 中央特快", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "内幸町>三田": {"d": 5, "line": "1番線 武蔵小山行", "car": "", "track": "6両編成 2or4号車", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "大宮>浅草": {"d": 39, "line": "宇都宮線", "car": "10両編成 1号車", "track": "4番線 平塚行 普通", "via": "上野", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "大宮>行徳": {"d": 78, "line": "1/2番線 大船行", "car": "", "track": "※※ 確認 ※※", "via": "南浦和 > 西船橋", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "大森>川崎": {"d": 8, "line": "京浜東北線", "car": "10両編成 5両目", "track": "1番線 磯子行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "大森>蒲田": {"d": 4, "line": "1番線 大船行", "car": "", "track": "※※ 確認 ※※", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "小川町>神保町": {"d": 2, "line": "3番線 橋本行", "car": "", "track": "10両編成6号車", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "拝島>八王子": {"d": 15, "line": "JR八高線", "car": "10両編成  1号車", "track": "5番線 八王子行 普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "新宿>下北": {"d": 8, "line": "小田急線", "car": "", "track": "4/5番線 急行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "新宿>東高円寺": {"d": 8, "line": "丸ノ内線", "car": "6両編成  3号車", "track": "1番線荻窪行き 普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "新宿三丁目>銀座": {"d": 14, "line": "2番線", "car": "", "track": "6両編成10号車", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "新橋>浅草橋": {"d": 11, "line": "浅草線", "car": "8両編成  2号車、5号車", "track": "2番線 印旛日本医大行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "新橋>浅草": {"d": 13, "line": "浅草線", "car": "8両編成  5号車", "track": "1番線 羽田行 急行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "新橋>虎ノ門": {"d": 1, "line": "1番線 渋谷行", "car": "", "track": "6両編成 5号車", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "本蓮沼>高田馬場": {"d": 27, "line": "三田線", "car": "6両編成  3号車", "track": "1番線  白金高輪行き普通", "via": "巣鴨", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "東銀座>五反田": {"d": 13, "line": "浅草線", "car": "8両編成  7号車", "track": "1番線 西馬込行 普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "東銀座>錦糸町": {"d": 24, "line": "浅草線", "car": "8両編成 ２両目", "track": "2番線 押上行", "via": "浅草橋", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "東銀座>本蓮沼": {"d": 32, "line": "日比谷線", "car": "7両編成 6号車", "track": "3番線 中目黒行 普通", "via": "日比谷", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "東銀座>神保町": {"d": 12, "line": "日比谷線", "car": "7両編成 6号車", "track": "3番線 中目黒行", "via": "日比谷", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "東高円寺>高円寺": {"d": 9, "line": "丸の内線", "car": "10両編成 4号車、6号車", "track": "1番線 荻窪行", "via": "荻窪", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "東高円寺駅前>中野三丁目": {"d": 4, "line": "玉35", "car": "バス乗り場注意", "track": "2番線  中野行き", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "武蔵小山>五反田": {"d": 10, "line": "目黒線", "car": "8両編成 2両目", "track": "3/4番線 西高島平行普通", "via": "目黒", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "武蔵小杉>渋谷": {"d": 14, "line": "3/4番線 西高島平行", "car": "", "track": "※※ 確認 ※※ 乗車位置 後部 中間部", "via": "目黒", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "池袋>川口": {"d": 20, "line": "JR埼京線", "car": "10両編成  7号車", "track": "4番線 武蔵浦和行 普通", "via": "赤羽", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "池袋>本蓮沼": {"d": 11, "line": "7番線 東京行", "car": "", "track": "6or 8号車", "via": "巣鴨", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "浅草>神田": {"d": 11, "line": "渋谷行", "car": "", "track": "6両編成1号車", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "浅草橋>東銀座": {"d": 9, "line": "浅草線", "car": "8両編成  4号車", "track": "1番線  西馬込行き普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "浅草橋>川口": {"d": 27, "line": "JR総武線", "car": "10両編成  6号車", "track": "1番線 三鷹行 普通", "via": "秋葉原", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "浅草橋>浅草": {"d": 3, "line": "2番線 京成佐倉行", "car": "", "track": "8両編成8号車", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "渋谷>武蔵小山": {"d": 15, "line": "JR山手線", "car": "11両編成  10号車", "track": "2番線 品川行 普通", "via": "目黒", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "白楽>京急川崎": {"d": 24, "line": "東横線 各停", "car": "10両編成 3,6号車\n8両編成 2,5号車", "track": "1番線 元町中華街行", "via": "横浜", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "白楽>青物横丁": {"d": 33, "line": "東横線", "car": "8両編成 1両目", "track": "2番線元町中華街行普通", "via": "横浜", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "白楽>川崎": {"d": 24, "line": "京浜東北線", "car": "10両編成 6両目", "track": "1番線 元町行 急行", "via": "横浜", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "神保町>武蔵小山": {"d": 26, "line": "三田線", "car": "", "track": "3番線 日吉行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "神保町>高田馬場": {"d": 14, "line": "新宿線", "car": "10両編成 5号車", "track": "1番線 笹塚行普通", "via": "九段下", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "神保町>本蓮沼": {"d": 19, "line": "三田線", "car": "6両編成 3号車", "track": "4番線 西高島平行普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "神保町>行徳": {"d": 32, "line": "東西線", "car": "10両編成  9号車", "track": "1番線  橋本行き 普通", "via": "九段下", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "神保町>東銀座": {"d": 10, "line": "三田線", "car": "6両編成  6号車", "track": "3番線  白金高輪行き普通", "via": "日比谷", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "神保町>京急蒲田": {"d": 31, "line": "三田線", "car": "８両編成８号車", "track": "3番線  海老名行き 急行", "via": "三田", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "神田>川口": {"d": 30, "line": "銀座線", "car": "6両編成  ６号車", "track": "2番線 浅草線行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "菊名>元住吉": {"d": 8, "line": "東横線", "car": "8両編成 1両目", "track": "5/6番線 石神井公園行普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "虎ノ門>表参道": {"d": 10, "line": "銀座線", "car": "6両編成  1号車", "track": "1番線 渋谷行き 普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "虎ノ門>下北沢": {"d": 23, "line": "銀座線", "car": "6両編成  1号車", "track": "1番線 渋谷行き 普通", "via": "渋谷", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "虎ノ門>東銀座": {"d": 3, "line": "日比谷線", "car": "7両編成  3号車", "track": "2番線 北千住行き", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "行徳>高田馬場": {"d": 39, "line": "東西線 各停", "car": "10両編成 10号車", "track": "2番線 中野行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "行徳>京急蒲田": {"d": 58, "line": "東西線", "car": "10両編成  1号車", "track": "2番線  中野行き 普通", "via": "日本橋", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "行徳>東銀座": {"d": 28, "line": "東西線", "car": "10両編成 1号車", "track": "2番線 三鷹行", "via": "日本橋", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "行徳>新橋": {"d": 32, "line": "2番線 三鷹行", "car": "", "track": "10両編成 6号車", "via": "日本橋", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "西荻窪>八王子": {"d": 37, "line": "JR中央線", "car": "10両編成 6号車", "track": "3番線 高尾行 各駅", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "西荻窪>神田": {"d": 25, "line": "JR中央線", "car": "10両編成 2号車", "track": "4番線 東京行 急行", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "銀座>虎ノ門": {"d": 4, "line": "銀座線", "car": "6両編成  5号車", "track": "1番線 渋谷行き 普通", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "錦糸町>青物横丁": {"d": 27, "line": "横須賀線", "car": "15両編成 4両目", "track": "3番線 大船行", "via": "品川", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "青物横丁>大森": {"d": 15, "line": "2番線 品川行", "car": "", "track": "※※ 確認 ※※ 乗車位置 中間部", "via": "品川", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "青物横丁>神保町": {"d": 24, "line": "2番線 青砥行", "car": "", "track": "8両編成 8両目", "via": "三田", "n": 1, "amb": 0, "spread": 0, "fresh": 0}, "駒込>川口": {"d": 16, "line": "山手線", "car": "11両編成  4、６、10、11号車", "track": "1番線 上野東京方面", "via": "田端", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "高田馬場>江古田": {"d": 19, "line": "JR山手線", "car": "11両編成  2号車", "track": "1番線  池袋、上野方面", "via": "池袋", "n": 1, "amb": 0, "spread": 0, "fresh": 1}, "高田馬場>西武新宿": {"d": 2, "line": "5番線 西武新宿行", "car": "", "track": "10両編成10号車", "via": "", "n": 1, "amb": 0, "spread": 0, "fresh": 0}}, "blocks": {"A": "都心（銀座・新橋・虎ノ門）", "B": "神田・神保町・浅草橋", "C": "城東（両国・錦糸町・浅草・新小岩）", "D": "新宿・高田馬場", "E": "中央線（中野〜西荻窪）", "F": "池袋・城北", "G": "渋谷・世田谷", "H": "品川・大田", "I": "川崎・横浜", "J": "埼玉", "K": "千葉", "L": "多摩"}};
+const S = DATA.stores, SEG = DATA.segs, BL = DATA.blocks;
+const EVL = {rest:{n:"休憩",m:30},quiz:{n:"質問タイム（車内）",m:0},jan:{n:"シェアじゃんけん",m:5}};
+let courses = [{name:"1日目 A班",date:"2026-08-26",start:"09:00",items:[]}];
+let ci = 0;
+let OV = {stn:{},seg:{},pair:{},extra:{}};
+const C = ()=>courses[ci];
+
+function n(id){return parseInt(document.getElementById(id).value)||0}
+function t2m(s){const p=String(s).split(":");return (+p[0])*60+(+p[1]||0)}
+function m2t(m){m=((m%1440)+1440)%1440;return String(Math.floor(m/60)).padStart(2,"0")+":"+String(m%60).padStart(2,"0")}
+function st(id){return S.find(x=>x.id===id)}
+function esc(s){return String(s==null?"":s).replace(/"/g,"&quot;")}
+
+/* ---- 駅の候補 ---- */
+function opts(s){
+  const base=s.stns.map(o=>({...o}));
+  (OV.extra[s.id]||[]).forEach(x=>{if(!base.some(o=>o.s===x))base.push({s:x,ex:"",w:5,n:0})});
+  return base.map(o=>{const k=s.id+"|"+o.s,ov=OV.stn[k]||{};
+    return {s:o.s,ex:ov.ex!=null?ov.ex:o.ex,w:ov.w!=null?ov.w:o.w,n:o.n}});
+}
+function opt(s,name){const L=opts(s);return L.find(o=>o.s===name)||L[0]}
+function addStn(id,x){x=(x||"").trim().replace(/駅$/,"");
+  if(!x){render();return}
+  const cur=OV.extra[id]||[];
+  if(!cur.includes(x)&&!st(id).stns.some(o=>o.s===x)){OV.extra[id]=cur.concat([x])}
+  say("「"+x+"」を "+st(id).name+" の候補に追加しました");render()}
+function delStn(id,x){OV.extra[id]=(OV.extra[id]||[]).filter(v=>v!==x);
+  say("「"+x+"」を候補から外しました");render()}
+function setStn(id,stn,f,x){const k=id+"|"+stn;OV.stn[k]=OV.stn[k]||{};
+  OV.stn[k][f]=(f==="w")?(parseInt(x)||0):x;render()}
+function setSeg(k,f,x){OV.seg[k]=OV.seg[k]||{};OV.seg[k][f]=(f==="d")?(parseInt(x)||0):x;render()}
+function setPair(k,x){OV.pair[k]=parseInt(x)||0;render()}
+function setEv(i,f,x){C().items[i][f]=(f==="min")?(parseInt(x)||0):x;render()}
+function setC(f,x){C()[f]=x;render()}
+function setLeg(i,f,x){C().items[i][f]=(x==="")?null:x;render()}
+
+function rawLeg(a,b){
+  const k=a+">"+b,r=b+">"+a;let g;
+  if(SEG[k])g={...SEG[k],key:k,rev:false};
+  else if(SEG[r])g={...SEG[r],car:"",track:"",key:k,rev:true};
+  else g={d:20,line:"",track:"",car:"",via:"",n:0,key:k,rev:false,none:true};
+  const o=OV.seg[k];
+  if(o){if(o.d!=null){g.d=o.d;g.none=false;g.fixed=true}if(o.car!=null){g.car=o.car;g.fixed=true}}
+  return g;
+}
+/* 出発駅・到着駅の最適な組み合わせを選ぶ */
+function pick(prev,cur,forceDep,forceArr,BUF,SAME){
+  const AL=opts(prev),BL2=opts(cur);
+  let A=AL.filter(o=>!forceDep||o.s===forceDep); if(!A.length)A=AL;
+  let B=BL2.filter(o=>!forceArr||o.s===forceArr); if(!B.length)B=BL2;
+  let best=null;
+  A.forEach(a=>B.forEach(b=>{
+    if(a.s===b.s){const c={walkOnly:true,a:a,b:b,cost:SAME};
+      if(!best||c.cost<best.cost)best=c;return}
+    const g=rawLeg(a.s,b.s);
+    const cost=a.w+BUF+g.d+b.w+(g.none?15:0);
+    const c={walkOnly:false,a:a,b:b,g:g,cost:cost};
+    if(!best||c.cost<best.cost)best=c;
+  }));
+  return best;
+}
+function selHTML(store,cur,idx,field,label){
+  const L=opts(store);
+  return label+' <select class="stnsel" onchange="setLeg('+idx+',\''+field+'\',this.value)">'+
+    '<option value="">自動（'+cur+'）</option>'+
+    L.map(o=>'<option value="'+esc(o.s)+'"'+(C().items[idx][field]===o.s?' selected':'')+'>'+
+      o.s+'（徒歩'+o.w+'分'+(o.n?'・実績'+o.n+'回':'・徒歩は推定なので要確認')+'）</option>').join("")+
+    '</select> <input class="ed stnadd" placeholder="＋駅を追加" value="" '+
+    'onchange="addStn(\''+store.id+'\',this.value)">'+
+    ((OV.extra[store.id]||[]).includes(cur)?
+      ' <button class="mini" onclick="delStn(\''+store.id+'\',\''+esc(cur)+'\')">この駅を候補から外す</button>':'');
+}
+
+function add(id){C().items.push({type:"stop",id:id,dep:null,arr:null});render()}
+function addEv(t){C().items.push({type:t,min:EVL[t].m,label:EVL[t].n});render()}
+function clearAll(){C().items=[];render()}
+function rm(i){C().items.splice(i,1);render()}
+
+function tabs(){
+  const el=document.getElementById("tabs");el.innerHTML="";
+  courses.forEach((c,i)=>{const b=document.createElement("button");
+    b.className="tab"+(i===ci?" on":"");
+    b.textContent=c.name+"（"+c.items.filter(x=>x.type==="stop").length+"）";
+    b.onclick=()=>{ci=i;render()};el.appendChild(b)});
+  const a=document.createElement("button");a.className="tab add";a.textContent="＋ コースを追加";
+  a.onclick=addC;el.appendChild(a);
+}
+function addC(){courses.push({name:"新しいコース",date:C().date,start:"09:00",items:[]});ci=courses.length-1;render()}
+let delArm=false;
+function delC(){
+  if(courses.length<2){say("最後の1コースは削除できません。");return}
+  if(!delArm){delArm=true;render();say("もう一度押すと「"+C().name+"」を削除します");
+    setTimeout(()=>{delArm=false;render()},5000);return}
+  const nm=C().name;courses.splice(ci,1);ci=Math.max(0,ci-1);delArm=false;render();
+  say("「"+nm+"」を削除しました")}
+function say(m){const e=document.getElementById("msg");if(!e)return;
+  e.textContent=m;e.style.display="block";clearTimeout(window._mt);
+  window._mt=setTimeout(()=>{e.style.display="none"},4000)}
+
+let dragI=null;
+function dnd(li,i){
+  li.draggable=true;
+  li.ondragstart=e=>{dragI=i;li.classList.add("drag");e.dataTransfer.effectAllowed="move"};
+  li.ondragend=()=>{li.classList.remove("drag");
+    document.querySelectorAll(".stops li").forEach(x=>x.classList.remove("over"))};
+  li.ondragover=e=>{e.preventDefault();li.classList.add("over")};
+  li.ondragleave=()=>li.classList.remove("over");
+  li.ondrop=e=>{e.preventDefault();li.classList.remove("over");
+    if(dragI===null||dragI===i)return;
+    const it=C().items.splice(dragI,1)[0];C().items.splice(i,0,it);dragI=null;render()};
+}
+function buildPicker(){
+  const el=document.getElementById("picker");el.innerHTML="";
+  Object.keys(BL).forEach(k=>{
+    const list=S.filter(s=>s.blk===k);if(!list.length)return;
+    const d=document.createElement("div");d.className="blk";
+    d.innerHTML='<div class="blkhead"><span>'+k+'　'+BL[k]+'</span><span>'+list.length+'店 ▾</span></div>'+
+      '<div class="blkbody">'+list.map(s=>'<div class="sitem"><button onclick="add(\''+s.id+
+      '\')">＋</button><span>'+s.name+'</span><span class="tag">'+
+      s.stns.map(o=>o.s).join("/")+'</span></div>').join("")+'</div>';
+    d.querySelector(".blkhead").onclick=()=>d.classList.toggle("open");
+    el.appendChild(d);
+  });
+}
+
+function tp(c){const d=(c.date||"2026-08-26").split("-");return{y:d[0],m:d[1],d:d[2]}}
+function yahoo(c,a,b,mins){const p=tp(c),hh=String(Math.floor(mins/60)).padStart(2,"0"),
+  mm=String(mins%60).padStart(2,"0");
+  return "https://transit.yahoo.co.jp/search/result?from="+encodeURIComponent(a)+"&to="+encodeURIComponent(b)+
+    "&y="+p.y+"&m="+p.m+"&d="+p.d+"&hh="+hh+"&m1="+mm[0]+"&m2="+mm[1]+"&type=1"}
+function gmap(a,b,mode){return "https://www.google.com/maps/dir/?api=1&origin="+encodeURIComponent(a)+
+  "&destination="+encodeURIComponent(b)+"&travelmode="+mode}
+function wada(s){return "https://wadattsu261.com/?s="+encodeURIComponent(s)}
+function loc(s){return s.addr?s.addr:s.stn+"駅"}
+function chk(u,t,c){return ' <a class="chk'+(c?" "+c:"")+'" href="'+u+'" target="_blank" rel="noopener">'+t+'</a>'}
+
+function calc(c){
+  let cur=t2m(c.start||"09:00");
+  const INSP=n("insp"),BUF=n("buf"),SAME=n("same"),CL=n("close");
+  const out=[];let prev=null,prevIdx=-1;
+  c.items.forEach((it,idx)=>{
+    if(it.type!=="stop"){out.push({k:"ev",idx:idx,t:cur,min:it.min||0,label:it.label,type:it.type});
+      cur+=(it.min||0);return}
+    const s=st(it.id);
+    if(prev){
+      const P=pick(prev,s,c.items[prevIdx].dep,it.arr,BUF,SAME);
+      if(P.walkOnly){
+        const key=prev.id+"|"+s.id,w=OV.pair[key]!=null?OV.pair[key]:SAME;
+        out.push({k:"pair",a:prev,b:s,w:w,key:key,ai:prevIdx,bi:idx,sa:P.a,sb:P.b});cur+=w;
+      }else{
+        cur+=P.a.w+BUF;const dep=cur;cur+=P.g.d;
+        out.push({k:"train",a:prev,b:s,ai:prevIdx,bi:idx,sa:P.a,sb:P.b,g:P.g,dep:dep,arr:dep+P.g.d});
+        cur+=P.b.w;
+      }
+      out.push({k:"stop",s:s,idx:idx,stn:P.b,a:cur,b:cur+INSP,c:cur-CL});
+    }else{
+      const first=opt(s,it.arr);
+      out.push({k:"stop",s:s,idx:idx,stn:first,a:cur,b:cur+INSP,c:cur-CL});
+    }
+    cur+=INSP;prev=s;prevIdx=idx;
+  });
+  return {rows:out,end:cur};
+}
+
+function render(){
+  tabs();
+  document.getElementById("cname").value=C().name;
+  document.getElementById("cdate").value=C().date;
+  document.getElementById("cstart").value=C().start;
+  const db=document.getElementById("delbtn");
+  if(db){db.textContent=delArm?"もう一度押すと削除されます":"このコースを削除";
+    db.style.color=delArm?"#C0392B":"";db.style.borderColor=delArm?"#C0392B":""}
+  const ul=document.getElementById("stops");ul.innerHTML="";
+  C().items.forEach((it,i)=>{
+    const li=document.createElement("li");
+    if(it.type==="stop"){const s=st(it.id);
+      li.innerHTML='<span class="grip">⠿</span><span class="ord">'+(i+1)+'</span><span class="nm">'+
+        s.name+'</span>';}
+    else{li.className="ev";
+      li.innerHTML='<span class="grip">⠿</span><span class="ord">'+(i+1)+'</span><span class="nm">'+
+        it.label+(it.min?'（'+it.min+'分）':'')+'</span>';}
+    li.innerHTML+='<button class="mini" onclick="rm('+i+')">×</button>';
+    dnd(li,i);ul.appendChild(li);
+  });
+  const nOV=Object.keys(OV.stn).length+Object.keys(OV.seg).length+Object.keys(OV.pair).length;
+  document.getElementById("ovcount").textContent=nOV?"現在 "+nOV+" 件の修正を保持しています。":"";
+  if(!C().items.length){
+    document.getElementById("sched").innerHTML='<div class="empty">左から店舗を追加してください。</div>';
+    document.getElementById("announce").innerHTML="";document.getElementById("warn").innerHTML="";
+    document.getElementById("links").innerHTML="";document.getElementById("rich").innerHTML="";
+    save();return;
+  }
+  const R=calc(C());let html="",ann=[],missing=[],links=[];
+  R.rows.forEach(r=>{
+    if(r.k==="ev"){
+      html+='<div class="row"><div class="t num">'+m2t(r.t)+'</div><div class="rail"></div><div class="body">'+
+        '<div class="evbox"><input class="ed wide" value="'+esc(r.label)+
+        '" onchange="setEv('+r.idx+',\'label\',this.value)"> <input class="ed" value="'+r.min+
+        '" onchange="setEv('+r.idx+',\'min\',this.value)"> 分'+
+        (r.type==="quiz"?'　<span class="meta">※車内で実施</span>':
+         '　<span class="meta">再集合 '+m2t(r.t+r.min)+'</span>')+'</div></div></div>';
+    }else if(r.k==="pair"){
+      html+='<div class="row"><div class="t"></div><div class="rail"></div><div class="body"><div class="walk">'+
+        r.a.name+' → '+r.b.name+'　徒歩 <input class="ed" value="'+r.w+
+        '" onchange="setPair(\''+r.key+'\',this.value)"> 分（'+r.sa.s+'駅エリア内）'+
+        chk(gmap(loc(r.a),loc(r.b),"walking"),'この2店をGoogleマップで確認')+'</div></div></div>';
+    }else if(r.k==="train"){
+      const g=r.g;links.push({a:r.sa.s,b:r.sb.s,dep:r.dep});
+      html+='<div class="row train"><div class="t"></div><div class="rail"></div><div class="body">'+
+        '<div class="walk">'+selHTML(r.a,r.sa.s,r.ai,"dep","出発駅")+
+        '　'+r.a.name+' → '+r.sa.s+'駅　徒歩 <input class="ed" value="'+r.sa.w+
+        '" onchange="setStn(\''+r.a.id+'\',\''+esc(r.sa.s)+'\',\'w\',this.value)"> 分'+
+        chk(gmap(loc(r.a),r.sa.s+"駅","walking"),'徒歩を確認')+'</div>';
+      const btns=chk(yahoo(C(),r.sa.s,r.sb.s,r.dep),'Yahoo!乗換（'+m2t(r.dep)+'発）')+
+        chk(wada(r.sb.s),'わだっつろぐで号車','w')+
+        chk(gmap(loc(r.a),loc(r.b),"transit"),'Googleマップ店→店');
+      if(g.none){
+        missing.push(r.sa.s+"→"+r.sb.s);
+        html+='<div class="miss">'+r.sa.s+' → '+r.sb.s+' のデータなし（仮 <input class="ed" value="'+g.d+
+          '" onchange="setSeg(\''+g.key+'\',\'d\',this.value)"> 分）　号車 <input class="ed wide" value="" placeholder="調べて入力" onchange="setSeg(\''+
+          g.key+'\',\'car\',this.value)">'+btns+'</div>';
+      }else{
+        html+='<div class="trainbox"><b>'+m2t(r.dep)+' '+r.sa.s+'発</b> → <b>'+m2t(r.arr)+' '+r.sb.s+'着</b>'+
+          '　所要 <input class="ed" value="'+g.d+'" onchange="setSeg(\''+g.key+'\',\'d\',this.value)"> 分　'+
+          (g.line||'')+(g.track?'／'+g.track:'')+
+          '<div style="margin-top:3px">乗車位置 <input class="ed wide" value="'+esc(g.car)+
+          '" placeholder="要確認" onchange="setSeg(\''+g.key+'\',\'car\',this.value)">'+
+          (g.via?'<span class="meta">　乗換：'+g.via+'</span>':'')+'</div>'+
+          '<div class="meta">'+(g.fixed?'<b style="color:#1F7A5C">手動で確定済み</b>':
+            (g.rev?'<b style="color:#C0392B">逆方向の実績を流用：号車は要確認</b>':
+            (g.fresh?'前回使用値':'<b style="color:#8A6212">しばらく未使用</b>')+'（未検証・'+g.n+'回使用）'))+
+          btns+'</div></div>';
+      }
+      html+='<div class="walk">'+selHTML(r.b,r.sb.s,r.bi,"arr","到着駅")+
+        '　出口 <input class="ed wide" value="'+esc(r.sb.ex)+'" placeholder="出口" onchange="setStn(\''+
+        r.b.id+'\',\''+esc(r.sb.s)+'\',\'ex\',this.value)"> → '+r.b.name+'　徒歩 <input class="ed" value="'+
+        r.sb.w+'" onchange="setStn(\''+r.b.id+'\',\''+esc(r.sb.s)+'\',\'w\',this.value)"> 分'+
+        chk(gmap(r.sb.s+"駅",loc(r.b),"walking"),'徒歩を確認')+'</div></div></div>';
+    }else{
+      html+='<div class="row"><div class="t num">'+m2t(r.a)+'-'+m2t(r.b)+'</div>'+
+        '<div class="rail"><span class="dot"></span></div><div class="body">'+
+        '<div class="stopname">'+r.s.name+'</div><div class="meta">'+r.stn.s+'駅'+
+        (r.stn.ex?'／出口 '+r.stn.ex:'')+(r.s.note?'　<b style="color:#8A6212">'+r.s.note+'</b>':'')+
+        '</div></div></div>';
+      ann.push({name:r.s.name,stn:r.stn.s,a:m2t(r.a),b:m2t(r.b),c:m2t(r.c)});
+    }
+  });
+  document.getElementById("sched").innerHTML=html;
+  document.getElementById("warn").innerHTML=missing.length?
+    '<div class="warn">所要時間データがない区間が '+missing.length+' 件：'+[...new Set(missing)].join("、")+
+    '（仮20分で計算中）</div>':'';
+  document.getElementById("links").innerHTML=links.map(l=>
+    '<a href="'+yahoo(C(),l.a,l.b,l.dep)+'" target="_blank" rel="noopener">'+m2t(l.dep)+'　'+
+    l.a+' → '+l.b+'（Yahoo!乗換）</a>').join("");
+  document.getElementById("announce").innerHTML=
+    '<table><tr><th>順</th><th>店舗</th><th>最寄駅</th><th>点検時刻</th><th>閉店時刻</th></tr>'+
+    ann.map((x,i)=>'<tr><td class="num">'+(i+1)+'</td><td>'+x.name+'</td><td>'+x.stn+
+    '</td><td class="num">'+x.a+'〜'+x.b+'</td><td class="num"><b>'+x.c+'</b></td></tr>').join("")+
+    '</table><p style="margin:10px 0 0"><button class="btn ghost sm" onclick="copyTbl()">この表をコピー</button>'+
+    ' <span class="meta">終了予定 '+m2t(R.end)+'</span></p>';
+  window._ann=ann;
+  document.getElementById("rich").innerHTML=richHTML();
+  save();
+}
+const CL_HEAD="background:#16324F;color:#fff;font-weight:bold;border:1px solid #9BB0C4;padding:4px 8px;font-size:12px;";
+const CL_BASE="border:1px solid #B8C7D6;padding:3px 8px;font-size:12px;";
+const CL_STOP=CL_BASE+"background:#DCE6F1;font-weight:bold;";
+const CL_TRAIN=CL_BASE+"background:#EAF1F8;";
+const CL_WALK=CL_BASE+"background:#F4F6F8;color:#5A6B7B;";
+const CL_EV=CL_BASE+"background:#FFF2CC;color:#8A6212;font-weight:bold;";
+const CL_TITLE="background:#1F4E79;color:#fff;font-weight:bold;border:1px solid #9BB0C4;padding:5px 8px;font-size:13px;";
+function tr(cells,style){return "<tr>"+cells.map(c=>'<td style="'+style+'">'+
+  (c==null?"":String(c))+"</td>").join("")+"</tr>"}
+function richHTML(){
+  const H=["移動手段","時刻","乗車駅／降車駅","線名","番線・行先","両数・号車","拠点名"];
+  let h='<table style="border-collapse:collapse;font-family:Meiryo,sans-serif">';
+  courses.forEach(c=>{
+    const R=calc(c);
+    h+='<tr><td colspan="7" style="'+CL_TITLE+'">'+c.name+'　'+(c.date||"")+'　開始 '+(c.start||"")+'</td></tr>';
+    h+="<tr>"+H.map(x=>'<td style="'+CL_HEAD+'">'+x+"</td>").join("")+"</tr>";
+    R.rows.forEach(r=>{
+      if(r.k==="stop"){
+        h+=tr(["",m2t(r.a)+"-"+m2t(r.b),r.stn.s+"駅","",r.stn.ex?"出口 "+r.stn.ex:"","",r.s.name],CL_STOP);
+      }else if(r.k==="ev"){
+        h+=tr(["",m2t(r.t)+(r.min?"-"+m2t(r.t+r.min):""),"","","",r.min?r.min+"分":"車内",r.label],CL_EV);
+      }else if(r.k==="pair"){
+        h+=tr(["徒歩"+r.w+"分","","","","","",r.a.name+" → "+r.b.name],CL_WALK);
+      }else if(r.k==="train"){
+        const g=r.g;
+        h+=tr(["徒歩"+r.sa.w+"分","","","","","",r.a.name+" → "+r.sa.s+"駅"],CL_WALK);
+        h+=tr(["出発",m2t(r.dep),r.sa.s+"駅",g.line||"",g.track||"",g.car||"要確認",""],CL_TRAIN);
+        if(g.via)h+=tr(["乗り換え","",g.via,"","","",""],CL_TRAIN);
+        h+=tr(["到着",m2t(r.arr),r.sb.s+"駅","","","",""],CL_TRAIN);
+        h+=tr(["徒歩"+r.sb.w+"分","","","",r.sb.ex?"出口 "+r.sb.ex:"","",r.sb.s+"駅 → "+r.b.name],CL_WALK);
+      }
+    });
+    h+=tr(["終了",m2t(R.end),"","","","",""],CL_STOP);
+    h+='<tr><td colspan="7" style="border:none;height:14px"></td></tr>';
+  });
+  return h+"</table>";
+}
+function copyRich(){
+  const el=document.getElementById("rich");
+  const rg=document.createRange();rg.selectNodeContents(el);
+  const sl=window.getSelection();sl.removeAllRanges();sl.addRange(rg);
+  let okc=false;try{okc=document.execCommand("copy")}catch(e){}
+  sl.removeAllRanges();
+  say(okc?"書式つきでコピーしました。Excelやスプレッドシートに貼り付けてください。"
+        :"コピーできませんでした。下の表をマウスで選択してコピーしてください。");
+}
+function dlXls(){
+  const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8">'+
+    '</head><body>'+richHTML()+'</body></html>';
+  const b=new Blob(["\ufeff"+html],{type:"application/vnd.ms-excel;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);
+  a.download="環境整備点検_運行表.xls";a.click();
+  say("保存しました。Excelで開くと色と罫線が入った状態になります。");
+}
+/* ===== 自動保存 ===== */
+const SKEY="nagi-route-builder-v1";
+let persist=null, saveT=null;
+function rules(){return {insp:document.getElementById("insp").value,buf:document.getElementById("buf").value,
+  same:document.getElementById("same").value,close:document.getElementById("close").value}}
+function payload(){return JSON.stringify({v:1,courses:courses,OV:OV,rules:rules(),ci:ci})}
+function stnow(){const d=new Date();
+  return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+
+    String(d.getSeconds()).padStart(2,"0")}
+function saveMsg(t){const e=document.getElementById("savest");if(e)e.innerHTML=t}
+async function doSave(){
+  const p=payload();
+  if(persist==="ws"){try{await window.storage.set(SKEY,p);
+    saveMsg("自動保存済み　<span style=\"color:#1F7A5C\">"+stnow()+"</span>");return}catch(e){}}
+  if(persist==="ls"){try{localStorage.setItem(SKEY,p);
+    saveMsg("自動保存済み　<span style=\"color:#1F7A5C\">"+stnow()+"</span>");return}catch(e){}}
+  saveMsg("<span style=\"color:#C0392B\">この画面では自動保存できません。</span>作業後に「バックアップを書き出す」を押してください。");
+}
+function save(){clearTimeout(saveT);saveT=setTimeout(doSave,400)}
+function applyState(o){
+  if(o.courses&&o.courses.length){courses=o.courses;ci=Math.min(o.ci||0,o.courses.length-1)}
+  if(o.OV)OV={stn:o.OV.stn||{},seg:o.OV.seg||{},pair:o.OV.pair||{},extra:o.OV.extra||{}};
+  if(o.rules)Object.keys(o.rules).forEach(k=>{const e=document.getElementById(k);if(e)e.value=o.rules[k]});
+}
+async function boot(){
+  let raw=null;
+  try{if(window.storage&&window.storage.get){persist="ws";
+    const r=await window.storage.get(SKEY);if(r&&r.value)raw=r.value}}catch(e){persist=null}
+  if(persist===null){try{localStorage.setItem("__t","1");localStorage.removeItem("__t");persist="ls";
+    raw=localStorage.getItem(SKEY)}catch(e){persist=null}}
+  if(raw){try{applyState(JSON.parse(raw));render();
+    say("前回の続きから復元しました（"+courses.length+"コース）");return}catch(e){}}
+  render();doSave();
+}
+function resetAll(){
+  courses=[{name:"1日目 A班",date:"2026-08-26",start:"09:00",items:[]}];ci=0;
+  OV={stn:{},seg:{},pair:{},extra:{}};render();say("最初の状態に戻しました。")}
+function toggleLinks(){document.getElementById("links").classList.toggle("on")}
+function copyTbl(){const t=["順\t店舗\t最寄駅\t点検時刻\t閉店時刻"].concat(
+  window._ann.map((x,i)=>[i+1,x.name,x.stn,x.a+"〜"+x.b,x.c].join("\t"))).join("\n");
+  navigator.clipboard.writeText(t).then(()=>say("表をコピーしました。Excelに貼り付けできます。"),
+    ()=>say("コピーできませんでした。表を選択して手動でコピーしてください。"))}
+function dl(name,rows){
+  const csv="\ufeff"+rows.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
+  const b=new Blob([csv],{type:"text/csv;charset=utf-8"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click()}
+function csvRough(){
+  const rows=[["コース","点検日","順","時刻","種別","拠点・内容","使用駅"]];
+  courses.forEach(c=>{const R=calc(c);let k=0;
+    R.rows.forEach(r=>{
+      if(r.k==="stop"){k++;rows.push([c.name,c.date,k,m2t(r.a)+"〜"+m2t(r.b),"点検",r.s.name,r.stn.s])}
+      else if(r.k==="ev"){rows.push([c.name,c.date,"",m2t(r.t)+(r.min?"〜"+m2t(r.t+r.min):""),r.label,r.min?r.min+"分":"車内",""])}
+      else if(r.k==="train"){rows.push([c.name,c.date,"",m2t(r.dep)+"〜"+m2t(r.arr),"移動",r.sa.s+"→"+r.sb.s,""])}
+      else if(r.k==="pair"){rows.push([c.name,c.date,"","","徒歩",r.a.name+"→"+r.b.name,r.sa.s])}});
+    rows.push([c.name,c.date,"",m2t(R.end),"終了","",""]);rows.push([])});
+  dl("環境整備点検_ざっくりルート案.csv",rows)}
+function csvFull(){
+  const rows=[["コース","点検日","順","時刻","種別","拠点・内容","使用駅","出口","路線・番線","乗車位置","所要(分)","閉店時刻","検証"]];
+  courses.forEach(c=>{const R=calc(c);let k=0;
+    R.rows.forEach(r=>{
+      if(r.k==="stop"){k++;rows.push([c.name,c.date,k,m2t(r.a)+"〜"+m2t(r.b),"点検",r.s.name,r.stn.s,r.stn.ex,"","","",m2t(r.c),""])}
+      else if(r.k==="ev"){rows.push([c.name,c.date,"",m2t(r.t),r.label,r.min?r.min+"分":"車内で実施","","","","",r.min,"",""])}
+      else if(r.k==="pair"){rows.push([c.name,c.date,"","","徒歩",r.a.name+"→"+r.b.name,r.sa.s,"","","",r.w,"",""])}
+      else if(r.k==="train"){const g=r.g;
+        rows.push([c.name,c.date,"",m2t(r.dep)+"〜"+m2t(r.arr),"電車",r.sa.s+"→"+r.sb.s,"","",
+          (g.line||"")+(g.track?" / "+g.track:""),g.car||"",g.d,"",
+          g.fixed?"確定済":(g.none?"データなし":(g.rev?"逆方向流用・要確認":"未検証"))])}});
+    rows.push([c.name,c.date,"",m2t(R.end),"終了","","","","","","","",""]);rows.push([])});
+  dl("環境整備点検_詳細ルート案.csv",rows)}
+function expAll(){const b=new Blob([JSON.stringify({courses:courses,OV:OV},null,1)],{type:"application/json"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(b);
+  a.download="環境整備点検_ルートデータ.json";a.click()}
+function impAll(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
+  r.onload=()=>{try{const o=JSON.parse(r.result);
+    if(o.courses&&o.courses.length){courses=o.courses;ci=0}
+    if(o.OV)OV={stn:o.OV.stn||{},seg:o.OV.seg||{},pair:o.OV.pair||{},extra:o.OV.extra||{}};
+    render();say("読み込みました。")}catch(err){say("ファイルを読めませんでした。")}};
+  r.readAsText(f)}
+["insp","buf","same","close"].forEach(id=>document.getElementById(id).addEventListener("change",render));
+buildPicker();boot();
+</script>
+</body>
+</html>
