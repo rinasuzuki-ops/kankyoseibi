@@ -87,6 +87,18 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
 .hint{font-size:11px;color:var(--sub);margin:6px 0 0}
 #msg{display:none;margin:10px 16px -4px;padding:8px 12px;background:#E2EFDA;border:1px solid #A9C9A4;
  border-radius:3px;font-size:12px;color:#1F5C3D}
+.lg{border:1px solid #C9D6E2;border-radius:4px;background:#F7FAFC;margin:4px 0;overflow:hidden}
+.lg.lgng{border-color:#E2B4AC;background:#FDF6F4}
+.lghd{display:flex;align-items:center;gap:8px;padding:4px 8px;background:#E8EFF6;
+ border-bottom:1px solid #D6E0EA;font-size:12px;flex-wrap:wrap}
+.lg.lgng .lghd{background:#F8E4DF;border-bottom-color:#E9C8C0}
+.lghd .sp{flex:1}
+.lgt{width:100%;border-collapse:collapse;font-size:12px}
+.lgt td{border:0;border-bottom:1px solid #E7EDF3;padding:4px 8px;vertical-align:middle}
+.lgt tr:last-child td{border-bottom:0}
+.lgt td.k{width:78px;color:#5A6B7B;font-size:11px;background:#F0F4F8;white-space:nowrap}
+.stnedit{margin-top:4px;padding:4px 6px;background:#fff;border:1px solid #D6E0EA;border-radius:3px}
+.ng{color:#C0392B}.wn{color:#8A6212}.okk{color:#1F7A5C}
 .edt{width:62px;padding:1px 5px;border:1px dashed #9BB0C4;border-radius:2px;font-size:12px;
  background:#FFFDF3;text-align:center;font-family:ui-monospace,Consolas,monospace}
 .edt.fixed{border:1px solid #1F7A5C;background:#EAF7F0;color:#155C43;font-weight:bold}
@@ -342,18 +354,24 @@ function pick(prev,cur,forceDep,forceArr,BUF,SAME,mode,pairW){
   if(mode==="walk"&&walks.length)return mn(walks);
   return mn(walks.concat(trains));
 }
-function selHTML(store,cur,idx,field,label){
-  const L=opts(store);
-  return label+' <select class="stnsel" onchange="setLeg('+idx+',\''+field+'\',this.value)">'+
+function selHTML(store,cur,idx,field){
+  const L=opts(store),key=idx+"|"+field,open=EDIT.has(key);
+  let s='<select class="stnsel" onchange="setLeg('+idx+',\''+field+'\',this.value)">'+
     '<option value="">自動（'+cur+'）</option>'+
     L.map(o=>'<option value="'+esc(o.s)+'"'+(C().items[idx][field]===o.s?' selected':'')+'>'+
-      o.s+'（徒歩'+o.w+'分'+(o.n?'・実績'+o.n+'回':'・徒歩は推定なので要確認')+'）</option>').join("")+
-    '</select> <input class="ed stnadd" placeholder="＋駅を追加" value="" '+
-    'onchange="addStn(\''+store.id+'\',this.value)">'+
-    ' <button class="mini" onclick="delStn(\''+store.id+'\',\''+esc(cur)+'\')">この駅を外す</button>'+
-    (((OV.hide||{})[store.id]||[]).length?
-      ' <button class="mini" onclick="unhideStn(\''+store.id+'\')">外した駅を戻す</button>':'');
+      o.s+'（徒歩'+o.w+'分'+(o.n?'':'・推定')+'）</option>').join("")+'</select>';
+  s+=' <button class="mini'+(open?' onmode':'')+'" onclick="tgEdit(\''+key+'\')" title="駅の候補を編集">駅⋯</button>';
+  if(open){
+    s+='<div class="stnedit"><input class="ed stnadd" placeholder="＋駅を追加" value="" '+
+      'onchange="addStn(\''+store.id+'\',this.value)">'+
+      ' <button class="mini" onclick="delStn(\''+store.id+'\',\''+esc(cur)+'\')">「'+cur+'」を外す</button>'+
+      (((OV.hide||{})[store.id]||[]).length?
+        ' <button class="mini" onclick="unhideStn(\''+store.id+'\')">外した駅を戻す</button>':'')+'</div>';
+  }
+  return s;
 }
+const EDIT=new Set();
+function tgEdit(k){EDIT.has(k)?EDIT.delete(k):EDIT.add(k);render()}
 
 function add(id){C().items.push({type:"stop",id:id,dep:null,arr:null});render()}
 function addEv(t){C().items.push({type:t,min:EVL[t].m,label:EVL[t].n});render()}
@@ -510,62 +528,55 @@ function render(){
         (r.type==="quiz"?'　<span class="meta">※車内で実施</span>':
          '　<span class="meta">再集合 '+m2t(r.t+r.min)+'</span>')+'</div></div></div>';
     }else if(r.k==="pair"){
-      html+='<div class="row"><div class="t"></div><div class="rail"></div><div class="body">'+
-        '<div class="walk">'+modeBtn(r.idx,r.mode)+'　'+
-        r.a.name+' → '+r.b.name+'　徒歩 <input class="ed" value="'+r.w+
-        '" onchange="setPair(\''+r.key+'\',this.value)"> 分（'+r.sa.s+'駅エリア内）'+
-        chk(gmap(loc(r.a),loc(r.b),"walking"),'この2店をGoogleマップで確認')+'</div>'+
-        '<div class="walk">'+selHTML(r.a,r.sa.s,r.ai,"dep","出発駅")+'　'+
-        selHTML(r.b,r.sb.s,r.bi,"arr","到着駅")+'</div></div></div>';
+      html+='<div class="row"><div class="t"></div><div class="rail"></div><div class="body"><div class="lg">'+
+        '<div class="lghd">'+modeBtn(r.idx,r.mode)+'<b>'+r.sa.s+'駅エリア内を徒歩</b>'+
+        '<span class="sp"></span>'+chk(gmap(loc(r.a),loc(r.b),"walking"),'地図')+'</div>'+
+        '<table class="lgt">'+
+        '<tr><td class="k">徒歩</td><td>'+r.a.name+' → '+r.b.name+
+          '　<input class="ed" value="'+r.w+'" onchange="setPair(\''+r.key+'\',this.value)"> 分</td></tr>'+
+        '<tr><td class="k">使う駅</td><td>出発 '+selHTML(r.a,r.sa.s,r.ai,"dep")+
+          '　到着 '+selHTML(r.b,r.sb.s,r.bi,"arr")+'</td></tr>'+
+        '</table></div></div></div>';
     }else if(r.k==="train"){
       const g=r.g;links.push({a:r.sa.s,b:r.sb.s,dep:r.atStn});
+      if(g.none)missing.push(r.sa.s+"→"+r.sb.s);
+      const btns=chk(yahoo(C(),r.sa.s,r.sb.s,r.atStn),'乗換を調べる')+
+        chk(wada(r.sb.s),'号車を調べる','w')+
+        chk(gmap(loc(r.a),loc(r.b),"transit"),'地図');
+      const st1='<b>'+m2t(r.atStn)+'</b> 着'+
+        (r.wait<0?'　<b class="ng">この電車に間に合いません（'+(-r.wait)+'分不足）</b>'
+                 :'　待ち <b'+(r.wait>=20?' class="wn"':'')+'>'+r.wait+'分</b>');
+      const status=g.fixed?'<b class="okk">号車は確定済み</b>':
+        (g.none?'<b class="ng">この区間のデータがありません</b>':
+        (g.rev?'<b class="ng">逆方向の実績を流用：号車は要確認</b>':
+        (g.fresh?'前回使用値':'<b class="wn">しばらく未使用</b>')+'（未検証・'+g.n+'回使用）'));
       html+='<div class="row train"><div class="t"></div><div class="rail"></div><div class="body">'+
-        '<div class="walk">'+modeBtn(r.idx,r.mode)+'　'+selHTML(r.a,r.sa.s,r.ai,"dep","出発駅")+
-        '　'+r.a.name+' → '+r.sa.s+'駅　徒歩 <input class="ed" value="'+r.sa.w+
-        '" onchange="setStn(\''+r.a.id+'\',\''+esc(r.sa.s)+'\',\'w\',this.value)"> 分'+
-        chk(gmap(loc(r.a),r.sa.s+"駅","walking"),'徒歩を確認')+'</div>';
-      const btns=chk(yahoo(C(),r.sa.s,r.sb.s,r.atStn),'Yahoo!乗換（'+m2t(r.atStn)+'着以降）')+
-        chk(wada(r.sb.s),'わだっつろぐで号車','w')+
-        chk(gmap(loc(r.a),loc(r.b),"transit"),'Googleマップ店→店');
-      if(g.none){
-        missing.push(r.sa.s+"→"+r.sb.s);
-        html+='<div class="miss">'+r.sa.s+' → '+r.sb.s+' のデータなし　'+
-          r.sa.s+'駅 着 <b>'+m2t(r.atStn)+'</b>'+
-          (r.wait<0?'　<b>間に合いません</b>':'　待ち '+r.wait+'分')+
-          '<div style="margin-top:2px">発 <input class="edt'+(r.fd?' fixed':'')+'" value="'+
-          (r.fd?m2t(r.dep):'')+'" placeholder="'+m2t(r.dep)+'" onchange="setLegT('+r.idx+',\'dept\',this.value)">'+
-          '　着 <input class="edt'+(r.fa?' fixed':'')+'" value="'+(r.fa?m2t(r.arr):'')+
-          '" placeholder="'+m2t(r.arr)+'" onchange="setLegT('+r.idx+',\'arrt\',this.value)">'+
-          '　所要 '+r.dur+'分　号車 <input class="ed wide" value="" placeholder="調べて入力" onchange="setSeg(\''+
-          g.key+'\',\'car\',this.value)">'+((r.fd||r.fa)?' <button class="mini" onclick="clearT('+r.idx+')">自動に戻す</button>':'')+
-          '</div>'+btns+'</div>';
-      }else{
-        html+='<div class="trainbox">'+
-          '<div>'+r.sa.s+'駅 着 <b>'+m2t(r.atStn)+'</b>'+
-          (r.wait<0?'　<b style="color:#C0392B">この電車には間に合いません（'+(-r.wait)+'分不足）</b>':
-            '　待ち <b'+(r.wait>=20?' style="color:#8A6212"':'')+'>'+r.wait+'分</b>')+'</div>'+
-          '<div style="margin-top:2px">発 <input class="edt'+(r.fd?' fixed':'')+'" value="'+
+        '<div class="lg'+(g.none?' lgng':'')+'">'+
+        '<div class="lghd">'+modeBtn(r.idx,r.mode)+'<b>'+r.sa.s+' → '+r.sb.s+'</b>'+
+        '<span class="sp"></span>'+btns+'</div>'+
+        '<table class="lgt">'+
+        '<tr><td class="k">店 → 駅</td><td>'+selHTML(r.a,r.sa.s,r.ai,"dep")+
+          '　徒歩 <input class="ed" value="'+r.sa.w+'" onchange="setStn(\''+r.a.id+'\',\''+esc(r.sa.s)+
+          '\',\'w\',this.value)"> 分　'+st1+
+          chk(gmap(loc(r.a),r.sa.s+"駅","walking"),'徒歩')+'</td></tr>'+
+        '<tr><td class="k">電車</td><td>発 <input class="edt'+(r.fd?' fixed':'')+'" value="'+
           (r.fd?m2t(r.dep):'')+'" placeholder="'+m2t(r.dep)+'" onchange="setLegT('+r.idx+',\'dept\',this.value)">'+
           '　着 <input class="edt'+(r.fa?' fixed':'')+'" value="'+(r.fa?m2t(r.arr):'')+
           '" placeholder="'+m2t(r.arr)+'" onchange="setLegT('+r.idx+',\'arrt\',this.value)">'+
           '　所要 '+r.dur+'分'+
-          (r.fa?'':'（<input class="ed" value="'+g.d+'" onchange="setSeg(\''+g.key+'\',\'d\',this.value)">分で計算）')+
-          ((r.fd||r.fa)?' <button class="mini" onclick="clearT('+r.idx+')">自動に戻す</button>':'')+
-          '</div><div style="margin-top:2px">'+
-          (g.line||'')+(g.track?'／'+g.track:'')+
-          '<div style="margin-top:3px">乗車位置 <input class="ed wide" value="'+esc(g.car)+
+          (r.fa?'':'（<input class="ed" value="'+g.d+'" onchange="setSeg(\''+g.key+'\',\'d\',this.value)">分）')+
+          ((r.fd||r.fa)?' <button class="mini" onclick="clearT('+r.idx+')">時刻を自動に戻す</button>':'')+
+          (g.line?'<div class="meta">'+g.line+(g.track?'／'+g.track:'')+(g.via?'／乗換：'+g.via:'')+'</div>':'')+
+          '</td></tr>'+
+        '<tr><td class="k">乗車位置</td><td><input class="ed wide" value="'+esc(g.car)+
           '" placeholder="要確認" onchange="setSeg(\''+g.key+'\',\'car\',this.value)">'+
-          (g.via?'<span class="meta">　乗換：'+g.via+'</span>':'')+'</div>'+
-          '<div class="meta">'+(g.fixed?'<b style="color:#1F7A5C">手動で確定済み</b>':
-            (g.rev?'<b style="color:#C0392B">逆方向の実績を流用：号車は要確認</b>':
-            (g.fresh?'前回使用値':'<b style="color:#8A6212">しばらく未使用</b>')+'（未検証・'+g.n+'回使用）'))+
-          btns+'</div></div>';
-      }
-      html+='<div class="walk">'+selHTML(r.b,r.sb.s,r.bi,"arr","到着駅")+
-        '　出口 <input class="ed wide" value="'+esc(r.sb.ex)+'" placeholder="出口" onchange="setStn(\''+
-        r.b.id+'\',\''+esc(r.sb.s)+'\',\'ex\',this.value)"> → '+r.b.name+'　徒歩 <input class="ed" value="'+
-        r.sb.w+'" onchange="setStn(\''+r.b.id+'\',\''+esc(r.sb.s)+'\',\'w\',this.value)"> 分'+
-        chk(gmap(r.sb.s+"駅",loc(r.b),"walking"),'徒歩を確認')+'</div></div></div>';
+          '　<span class="meta">'+status+'</span></td></tr>'+
+        '<tr><td class="k">駅 → 店</td><td>'+selHTML(r.b,r.sb.s,r.bi,"arr")+
+          '　出口 <input class="ed wide" value="'+esc(r.sb.ex)+'" placeholder="出口" onchange="setStn(\''+
+          r.b.id+'\',\''+esc(r.sb.s)+'\',\'ex\',this.value)">'+
+          '　徒歩 <input class="ed" value="'+r.sb.w+'" onchange="setStn(\''+r.b.id+'\',\''+esc(r.sb.s)+
+          '\',\'w\',this.value)"> 分'+chk(gmap(r.sb.s+"駅",loc(r.b),"walking"),'徒歩')+'</td></tr>'+
+        '</table></div></div></div>';
     }else{
       html+='<div class="row"><div class="t num">'+m2t(r.a)+'-'+m2t(r.b)+'</div>'+
         '<div class="rail"><span class="dot"></span></div><div class="body">'+
