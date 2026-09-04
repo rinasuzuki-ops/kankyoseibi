@@ -87,6 +87,14 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
 .hint{font-size:11px;color:var(--sub);margin:6px 0 0}
 #msg{display:none;margin:10px 16px -4px;padding:8px 12px;background:#E2EFDA;border:1px solid #A9C9A4;
  border-radius:3px;font-size:12px;color:#1F5C3D}
+.edt{width:62px;padding:1px 5px;border:1px dashed #9BB0C4;border-radius:2px;font-size:12px;
+ background:#FFFDF3;text-align:center;font-family:ui-monospace,Consolas,monospace}
+.edt.fixed{border:1px solid #1F7A5C;background:#EAF7F0;color:#155C43;font-weight:bold}
+.edt:focus{border:1px solid #1F4E79;background:#fff;outline:none}
+.modesw{display:inline-block;border:1px solid #B8C7D6;border-radius:3px;overflow:hidden;vertical-align:middle}
+.modesw .mini{border:0;border-right:1px solid #DCE3EA;border-radius:0;margin:0;padding:1px 8px}
+.modesw .mini:last-child{border-right:0}
+.modesw .mini.onmode{background:#1F4E79;color:#fff;font-weight:bold}
 .stnadd{width:96px!important;text-align:left!important}
 .nf{width:100%;padding:6px 8px;margin-bottom:6px;border:1px solid var(--line);
  border-radius:3px;font-size:13px;font-family:inherit}
@@ -157,9 +165,14 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
       <div class="pad" style="border-top:1px solid #EDF0F3">
         <button class="btn ghost sm" onclick="toggleImp()">Excel・CSVからまとめて登録</button>
         <div id="impform" style="display:none;margin-top:10px">
+          <p class="hint" style="margin:0 0 6px"><b>店舗マスタのExcelをそのまま取り込めます。</b>
+          シート全体（見出し行を含む）をコピーして貼り付けてください。<br>
+          住所で照合するので、<b>すでにある店は二重登録されません</b>。新しく足した行だけが追加されます。</p>
+          <label class="hint" style="display:block;margin:0 0 6px">
+            <input type="checkbox" id="i_upd" checked> 既存店の出口・徒歩分も、Excelの値で上書きする</label>
           <p class="hint" style="margin:0 0 6px"><b>方法1：</b>Excelで範囲をコピーして、下の枠に貼り付け</p>
           <textarea class="nf" id="i_tsv" rows="5"
-            placeholder="1行目に見出し（店舗名／住所／最寄駅／出口／徒歩／ブロック）を入れて貼り付けてください。見出しがなければ、この順番として読みます。"></textarea>
+            placeholder="店舗マスタのシートをそのままコピーして貼り付けてください（見出し行を含めてOK）。"></textarea>
           <button class="btn sm" onclick="impText()">貼り付けた内容を登録</button>
           <p class="hint" style="margin:10px 0 6px"><b>方法2：</b>CSVファイルを読み込む</p>
           <input type="file" id="i_csv" accept=".csv,.txt" onchange="impCsv(event)">
@@ -231,7 +244,7 @@ const S = DATA.stores, SEG = DATA.segs, BL = DATA.blocks;
 const EVL = {rest:{n:"休憩",m:30},quiz:{n:"質問タイム（車内）",m:0},jan:{n:"シェアじゃんけん",m:5}};
 let courses = [{name:"1日目 A班",date:"2026-08-26",start:"09:00",items:[]}];
 let ci = 0;
-let OV = {stn:{},seg:{},pair:{},extra:{},news:[]};
+let OV = {stn:{},seg:{},pair:{},extra:{},news:[],hide:{}};
 function ST(){return S.concat(OV.news||[])}
 const C = ()=>courses[ci];
 
@@ -243,10 +256,13 @@ function esc(s){return String(s==null?"":s).replace(/"/g,"&quot;")}
 
 /* ---- 駅の候補 ---- */
 function opts(s){
-  const base=s.stns.map(o=>({...o}));
-  (OV.extra[s.id]||[]).forEach(x=>{if(!base.some(o=>o.s===x))base.push({s:x,ex:"",w:5,n:0})});
+  const hide=((OV.hide||{})[s.id])||[];
+  let base=s.stns.map(o=>({...o,p:(o.s===s.stn)?1:0}));
+  base=base.filter(o=>!hide.includes(o.s));
+  if(!base.length)base=s.stns.map(o=>({...o,p:1}));
+  (OV.extra[s.id]||[]).forEach(x=>{if(!base.some(o=>o.s===x))base.push({s:x,ex:"",w:5,n:0,p:0})});
   return base.map(o=>{const k=s.id+"|"+o.s,ov=OV.stn[k]||{};
-    return {s:o.s,ex:ov.ex!=null?ov.ex:o.ex,w:ov.w!=null?ov.w:o.w,n:o.n}});
+    return {s:o.s,ex:ov.ex!=null?ov.ex:o.ex,w:ov.w!=null?ov.w:o.w,n:o.n,p:o.p||0}});
 }
 function opt(s,name){const L=opts(s);return L.find(o=>o.s===name)||L[0]}
 function addStn(id,x){x=(x||"").trim().replace(/駅$/,"");
@@ -254,8 +270,13 @@ function addStn(id,x){x=(x||"").trim().replace(/駅$/,"");
   const cur=OV.extra[id]||[];
   if(!cur.includes(x)&&!st(id).stns.some(o=>o.s===x)){OV.extra[id]=cur.concat([x])}
   say("「"+x+"」を "+st(id).name+" の候補に追加しました");render()}
-function delStn(id,x){OV.extra[id]=(OV.extra[id]||[]).filter(v=>v!==x);
+function delStn(id,x){
+  OV.extra[id]=(OV.extra[id]||[]).filter(v=>v!==x);
+  OV.hide=OV.hide||{};
+  if(st(id).stns.some(o=>o.s===x))OV.hide[id]=(OV.hide[id]||[]).concat([x]);
   say("「"+x+"」を候補から外しました");render()}
+function unhideStn(id){OV.hide=OV.hide||{};delete OV.hide[id];
+  say("外した駅を戻しました");render()}
 function setStn(id,stn,f,x){const k=id+"|"+stn;OV.stn[k]=OV.stn[k]||{};
   OV.stn[k][f]=(f==="w")?(parseInt(x)||0):x;render()}
 function setSeg(k,f,x){OV.seg[k]=OV.seg[k]||{};OV.seg[k][f]=(f==="d")?(parseInt(x)||0):x;render()}
@@ -263,6 +284,37 @@ function setPair(k,x){OV.pair[k]=parseInt(x)||0;render()}
 function setEv(i,f,x){C().items[i][f]=(f==="min")?(parseInt(x)||0):x;render()}
 function setC(f,x){C()[f]=x;render()}
 function setLeg(i,f,x){C().items[i][f]=(x==="")?null:x;render()}
+function normT(x){
+  x=String(x||"").trim();
+  if(!x)return null;
+  let m=x.match(/^(\d{1,2})\s*[:：.時]\s*(\d{1,2})/);
+  if(!m){const d=x.replace(/\D/g,"");
+    if(d.length===3)m=[0,d[0],d.slice(1)];
+    else if(d.length===4)m=[0,d.slice(0,2),d.slice(2)];
+    else return null}
+  const hh=+m[1],mm=+m[2];
+  if(hh>29||mm>59)return null;
+  return String(hh%24).padStart(2,"0")+":"+String(mm).padStart(2,"0");
+}
+function setLegT(i,f,x){
+  const v=normT(x);
+  if(x&&String(x).trim()&&!v){say("時刻を読み取れません。9:17 のように入力してください。");render();return}
+  C().items[i][f]=v;
+  if(f==="dept"&&!v)C().items[i].arrt=null;
+  render();
+}
+function clearT(i){C().items[i].dept=null;C().items[i].arrt=null;render();
+  say("この区間の時刻を自動計算に戻しました")}
+function setMode(i,m){C().items[i].mode=m||null;
+  if(m==="train"){C().items[i].dep=null;C().items[i].arr=null}
+  render();
+  say(m==="train"?"この区間を電車に切り替えました":
+      m==="walk"?"この区間を徒歩に切り替えました":"この区間を自動に戻しました")}
+function modeBtn(idx,mode){
+  const b=(m,t)=>'<button class="mini'+((mode||null)===m?" onmode":"")+
+    '" onclick="setMode('+idx+','+(m===null?"null":"'"+m+"'")+')">'+t+'</button>';
+  return '<span class="modesw">'+b(null,"自動")+b("train","電車")+b("walk","徒歩")+'</span>';
+}
 
 function rawLeg(a,b){
   const k=a+">"+b,r=b+">"+a;let g;
@@ -274,20 +326,21 @@ function rawLeg(a,b){
   return g;
 }
 /* 出発駅・到着駅の最適な組み合わせを選ぶ */
-function pick(prev,cur,forceDep,forceArr,BUF,SAME){
+function pick(prev,cur,forceDep,forceArr,BUF,SAME,mode,pairW){
   const AL=opts(prev),BL2=opts(cur);
   let A=AL.filter(o=>!forceDep||o.s===forceDep); if(!A.length)A=AL;
   let B=BL2.filter(o=>!forceArr||o.s===forceArr); if(!B.length)B=BL2;
-  let best=null;
+  const walks=[],trains=[];
   A.forEach(a=>B.forEach(b=>{
-    if(a.s===b.s){const c={walkOnly:true,a:a,b:b,cost:SAME};
-      if(!best||c.cost<best.cost)best=c;return}
-    const g=rawLeg(a.s,b.s);
-    const cost=a.w+BUF+g.d+b.w+(g.none?15:0);
-    const c={walkOnly:false,a:a,b:b,g:g,cost:cost};
-    if(!best||c.cost<best.cost)best=c;
+    if(a.s===b.s){walks.push({walkOnly:true,a:a,b:b,cost:(pairW!=null?pairW:SAME)})}
+    else{const g=rawLeg(a.s,b.s);
+      trains.push({walkOnly:false,a:a,b:b,g:g,
+        cost:a.w+BUF+g.d+b.w+(g.none?25:0)+((a.p||a.n>=2)?0:8)+((b.p||b.n>=2)?0:8)})}
   }));
-  return best;
+  const mn=L=>L.reduce((m,x)=>(!m||x.cost<m.cost)?x:m,null);
+  if(mode==="train"&&trains.length)return mn(trains);
+  if(mode==="walk"&&walks.length)return mn(walks);
+  return mn(walks.concat(trains));
 }
 function selHTML(store,cur,idx,field,label){
   const L=opts(store);
@@ -297,8 +350,9 @@ function selHTML(store,cur,idx,field,label){
       o.s+'（徒歩'+o.w+'分'+(o.n?'・実績'+o.n+'回':'・徒歩は推定なので要確認')+'）</option>').join("")+
     '</select> <input class="ed stnadd" placeholder="＋駅を追加" value="" '+
     'onchange="addStn(\''+store.id+'\',this.value)">'+
-    ((OV.extra[store.id]||[]).includes(cur)?
-      ' <button class="mini" onclick="delStn(\''+store.id+'\',\''+esc(cur)+'\')">この駅を候補から外す</button>':'');
+    ' <button class="mini" onclick="delStn(\''+store.id+'\',\''+esc(cur)+'\')">この駅を外す</button>'+
+    (((OV.hide||{})[store.id]||[]).length?
+      ' <button class="mini" onclick="unhideStn(\''+store.id+'\')">外した駅を戻す</button>':'');
 }
 
 function add(id){C().items.push({type:"stop",id:id,dep:null,arr:null});render()}
@@ -389,14 +443,21 @@ function calc(c){
     const s=st(it.id);
     if(!s)return;
     if(prev){
-      const P=pick(prev,s,c.items[prevIdx].dep,it.arr,BUF,SAME);
+      const pkey=prev.id+"|"+s.id;
+      const P=pick(prev,s,c.items[prevIdx].dep,it.arr,BUF,SAME,it.mode,OV.pair[pkey]);
       if(P.walkOnly){
-        const key=prev.id+"|"+s.id,w=OV.pair[key]!=null?OV.pair[key]:SAME;
-        out.push({k:"pair",a:prev,b:s,w:w,key:key,ai:prevIdx,bi:idx,sa:P.a,sb:P.b});cur+=w;
+        const w=OV.pair[pkey]!=null?OV.pair[pkey]:SAME;
+        out.push({k:"pair",a:prev,b:s,w:w,key:pkey,ai:prevIdx,bi:idx,idx:idx,sa:P.a,sb:P.b,mode:it.mode});cur+=w;
       }else{
-        cur+=P.a.w+BUF;const dep=cur;cur+=P.g.d;
-        out.push({k:"train",a:prev,b:s,ai:prevIdx,bi:idx,sa:P.a,sb:P.b,g:P.g,dep:dep,arr:dep+P.g.d});
-        cur+=P.b.w;
+        cur+=P.a.w;const atStn=cur;
+        const fd=it.dept?t2m(it.dept):null, fa=it.arrt?t2m(it.arrt):null;
+        const dep=(fd!=null)?fd:atStn+BUF;
+        const dur=(fa!=null)?Math.max(1,fa-dep):P.g.d;
+        const arr=dep+dur;
+        out.push({k:"train",a:prev,b:s,ai:prevIdx,bi:idx,idx:idx,sa:P.a,sb:P.b,g:P.g,
+          atStn:atStn,dep:dep,arr:arr,dur:dur,wait:dep-atStn,
+          fd:(fd!=null),fa:(fa!=null),mode:it.mode});
+        cur=arr+P.b.w;
       }
       out.push({k:"stop",s:s,idx:idx,stn:P.b,a:cur,b:cur+INSP,c:cur-CL});
     }else{
@@ -449,28 +510,48 @@ function render(){
         (r.type==="quiz"?'　<span class="meta">※車内で実施</span>':
          '　<span class="meta">再集合 '+m2t(r.t+r.min)+'</span>')+'</div></div></div>';
     }else if(r.k==="pair"){
-      html+='<div class="row"><div class="t"></div><div class="rail"></div><div class="body"><div class="walk">'+
+      html+='<div class="row"><div class="t"></div><div class="rail"></div><div class="body">'+
+        '<div class="walk">'+modeBtn(r.idx,r.mode)+'　'+
         r.a.name+' → '+r.b.name+'　徒歩 <input class="ed" value="'+r.w+
         '" onchange="setPair(\''+r.key+'\',this.value)"> 分（'+r.sa.s+'駅エリア内）'+
-        chk(gmap(loc(r.a),loc(r.b),"walking"),'この2店をGoogleマップで確認')+'</div></div></div>';
+        chk(gmap(loc(r.a),loc(r.b),"walking"),'この2店をGoogleマップで確認')+'</div>'+
+        '<div class="walk">'+selHTML(r.a,r.sa.s,r.ai,"dep","出発駅")+'　'+
+        selHTML(r.b,r.sb.s,r.bi,"arr","到着駅")+'</div></div></div>';
     }else if(r.k==="train"){
-      const g=r.g;links.push({a:r.sa.s,b:r.sb.s,dep:r.dep});
+      const g=r.g;links.push({a:r.sa.s,b:r.sb.s,dep:r.atStn});
       html+='<div class="row train"><div class="t"></div><div class="rail"></div><div class="body">'+
-        '<div class="walk">'+selHTML(r.a,r.sa.s,r.ai,"dep","出発駅")+
+        '<div class="walk">'+modeBtn(r.idx,r.mode)+'　'+selHTML(r.a,r.sa.s,r.ai,"dep","出発駅")+
         '　'+r.a.name+' → '+r.sa.s+'駅　徒歩 <input class="ed" value="'+r.sa.w+
         '" onchange="setStn(\''+r.a.id+'\',\''+esc(r.sa.s)+'\',\'w\',this.value)"> 分'+
         chk(gmap(loc(r.a),r.sa.s+"駅","walking"),'徒歩を確認')+'</div>';
-      const btns=chk(yahoo(C(),r.sa.s,r.sb.s,r.dep),'Yahoo!乗換（'+m2t(r.dep)+'発）')+
+      const btns=chk(yahoo(C(),r.sa.s,r.sb.s,r.atStn),'Yahoo!乗換（'+m2t(r.atStn)+'着以降）')+
         chk(wada(r.sb.s),'わだっつろぐで号車','w')+
         chk(gmap(loc(r.a),loc(r.b),"transit"),'Googleマップ店→店');
       if(g.none){
         missing.push(r.sa.s+"→"+r.sb.s);
-        html+='<div class="miss">'+r.sa.s+' → '+r.sb.s+' のデータなし（仮 <input class="ed" value="'+g.d+
-          '" onchange="setSeg(\''+g.key+'\',\'d\',this.value)"> 分）　号車 <input class="ed wide" value="" placeholder="調べて入力" onchange="setSeg(\''+
-          g.key+'\',\'car\',this.value)">'+btns+'</div>';
+        html+='<div class="miss">'+r.sa.s+' → '+r.sb.s+' のデータなし　'+
+          r.sa.s+'駅 着 <b>'+m2t(r.atStn)+'</b>'+
+          (r.wait<0?'　<b>間に合いません</b>':'　待ち '+r.wait+'分')+
+          '<div style="margin-top:2px">発 <input class="edt'+(r.fd?' fixed':'')+'" value="'+
+          (r.fd?m2t(r.dep):'')+'" placeholder="'+m2t(r.dep)+'" onchange="setLegT('+r.idx+',\'dept\',this.value)">'+
+          '　着 <input class="edt'+(r.fa?' fixed':'')+'" value="'+(r.fa?m2t(r.arr):'')+
+          '" placeholder="'+m2t(r.arr)+'" onchange="setLegT('+r.idx+',\'arrt\',this.value)">'+
+          '　所要 '+r.dur+'分　号車 <input class="ed wide" value="" placeholder="調べて入力" onchange="setSeg(\''+
+          g.key+'\',\'car\',this.value)">'+((r.fd||r.fa)?' <button class="mini" onclick="clearT('+r.idx+')">自動に戻す</button>':'')+
+          '</div>'+btns+'</div>';
       }else{
-        html+='<div class="trainbox"><b>'+m2t(r.dep)+' '+r.sa.s+'発</b> → <b>'+m2t(r.arr)+' '+r.sb.s+'着</b>'+
-          '　所要 <input class="ed" value="'+g.d+'" onchange="setSeg(\''+g.key+'\',\'d\',this.value)"> 分　'+
+        html+='<div class="trainbox">'+
+          '<div>'+r.sa.s+'駅 着 <b>'+m2t(r.atStn)+'</b>'+
+          (r.wait<0?'　<b style="color:#C0392B">この電車には間に合いません（'+(-r.wait)+'分不足）</b>':
+            '　待ち <b'+(r.wait>=20?' style="color:#8A6212"':'')+'>'+r.wait+'分</b>')+'</div>'+
+          '<div style="margin-top:2px">発 <input class="edt'+(r.fd?' fixed':'')+'" value="'+
+          (r.fd?m2t(r.dep):'')+'" placeholder="'+m2t(r.dep)+'" onchange="setLegT('+r.idx+',\'dept\',this.value)">'+
+          '　着 <input class="edt'+(r.fa?' fixed':'')+'" value="'+(r.fa?m2t(r.arr):'')+
+          '" placeholder="'+m2t(r.arr)+'" onchange="setLegT('+r.idx+',\'arrt\',this.value)">'+
+          '　所要 '+r.dur+'分'+
+          (r.fa?'':'（<input class="ed" value="'+g.d+'" onchange="setSeg(\''+g.key+'\',\'d\',this.value)">分で計算）')+
+          ((r.fd||r.fa)?' <button class="mini" onclick="clearT('+r.idx+')">自動に戻す</button>':'')+
+          '</div><div style="margin-top:2px">'+
           (g.line||'')+(g.track?'／'+g.track:'')+
           '<div style="margin-top:3px">乗車位置 <input class="ed wide" value="'+esc(g.car)+
           '" placeholder="要確認" onchange="setSeg(\''+g.key+'\',\'car\',this.value)">'+
@@ -537,7 +618,7 @@ function richHTML(){
       }else if(r.k==="train"){
         const g=r.g;
         h+=tr(["徒歩"+r.sa.w+"分","","","","","",r.a.name+" → "+r.sa.s+"駅"],CL_WALK);
-        h+=tr(["出発",m2t(r.dep),r.sa.s+"駅",g.line||"",g.track||"",g.car||"要確認",""],CL_TRAIN);
+        h+=tr(["出発",m2t(r.dep)+((r.fd||r.fa)?" ★":""),r.sa.s+"駅",g.line||"",g.track||"",g.car||"要確認",""],CL_TRAIN);
         if(g.via)h+=tr(["乗り換え","",g.via,"","","",""],CL_TRAIN);
         h+=tr(["到着",m2t(r.arr),r.sb.s+"駅","","","",""],CL_TRAIN);
         h+=tr(["徒歩"+r.sb.w+"分","","","",r.sb.ex?"出口 "+r.sb.ex:"","",r.sb.s+"駅 → "+r.b.name],CL_WALK);
@@ -586,7 +667,7 @@ async function doSave(){
 function save(){clearTimeout(saveT);saveT=setTimeout(doSave,400)}
 function applyState(o){
   if(o.courses&&o.courses.length){courses=o.courses;ci=Math.min(o.ci||0,o.courses.length-1)}
-  if(o.OV)OV={stn:o.OV.stn||{},seg:o.OV.seg||{},pair:o.OV.pair||{},extra:o.OV.extra||{},news:o.OV.news||[]};
+  if(o.OV)OV={stn:o.OV.stn||{},seg:o.OV.seg||{},pair:o.OV.pair||{},extra:o.OV.extra||{},news:o.OV.news||[],hide:o.OV.hide||{}};
   if(o.rules)Object.keys(o.rules).forEach(k=>{const e=document.getElementById(k);if(e)e.value=o.rules[k]});
 }
 async function boot(){
@@ -601,7 +682,7 @@ async function boot(){
 }
 function resetAll(){
   courses=[{name:"1日目 A班",date:"2026-08-26",start:"09:00",items:[]}];ci=0;
-  OV={stn:{},seg:{},pair:{},extra:{},news:[]};buildPicker();render();say("最初の状態に戻しました。")}
+  OV={stn:{},seg:{},pair:{},extra:{},news:[],hide:{}};buildPicker();render();say("最初の状態に戻しました。")}
 function toggleNew(){
   const f=document.getElementById("newform");
   const open=f.style.display==="none";
@@ -665,6 +746,47 @@ function guessBlk(t){
   for(const [k,ws] of M){if(ws.some(x=>t.includes(x)))return k}
   return "Z";
 }
+function normAddr(a){
+  if(!a)return "";
+  let x=String(a).replace(/[Ａ-Ｚａ-ｚ０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  x=x.replace(/^(東京都|神奈川県|埼玉県|千葉県|群馬県|栃木県|茨城県)/,"");
+  x=x.split(/[\s\u3000]/)[0];
+  x=x.replace(/[ー−–—‐]/g,"-").replace(/丁目|番地|番|号/g,"-");
+  x=x.replace(/-?(B?\d+F|地下\d+階|\d+階)$/i,"");
+  x=x.replace(/[\s\u3000]/g,"").replace(/-+/g,"-").replace(/-$/,"");
+  const m=x.match(/^(.*?)(\d+(?:-\d+)*)/);
+  return m?(m[1]+m[2]):x;
+}
+function lcs(a,b){
+  a=String(a).replace(/[\s\u3000（）()・]/g,"");b=String(b).replace(/[\s\u3000（）()・]/g,"");
+  let best=0;
+  for(let i=0;i<a.length;i++)for(let j=i+best+1;j<=a.length;j++){
+    const t=a.slice(i,j);if(b.includes(t)){if(t.length>best)best=t.length}else break}
+  return best;
+}
+function findExisting(nm,addr,stn){
+  const L=ST(),na=normAddr(addr);
+  if(na){
+    const cand=L.filter(x=>x.addr&&normAddr(x.addr)===na);
+    if(cand.length===1)return cand[0];
+    if(cand.length>1){
+      let best=null,bs=0;
+      cand.forEach(x=>{const sc=lcs(x.name,nm);if(sc>bs){bs=sc;best=x}});
+      if(bs>=3)return best;
+      return {ambiguous:true,cands:cand};
+    }
+  }
+  const key=String(nm).replace(/[\s\u3000（）()]/g,"");
+  const ex=L.find(x=>String(x.name).replace(/[\s\u3000（）()]/g,"")===key);
+  if(ex)return ex;
+  if(stn){
+    const same=L.filter(x=>x.stns.some(o=>o.s===stn));
+    let best=null,bs=0;
+    same.forEach(x=>{const sc=lcs(x.name,nm);if(sc>bs){bs=sc;best=x}});
+    if(bs>=3)return best;
+  }
+  return null;
+}
 function doImport(text){
   const lines=text.split(/\r?\n/).filter(l=>l.trim());
   if(!lines.length){say("読み取れる行がありませんでした。");return}
@@ -679,12 +801,36 @@ function doImport(text){
     rows=rows.slice(1);
   }
   if(map.name==null){say("「店舗名」の列が見つかりませんでした。見出しをご確認ください。");return}
-  let addc=0,skip=0,unset=0;const dup=[];
+  let addc=0,skip=0,unset=0,upd=0,off=0;const dup=[],amb=[];
+  const doUpd=document.getElementById("i_upd").checked;
+  const iTgt=head.findIndex(h=>String(h).includes("点検対象"));
+  const iSts=head.findIndex(h=>String(h).includes("ステータス"));
   rows.forEach(r=>{
     const nm=(r[map.name]||"").trim();if(!nm)return;
-    if(ST().some(x=>x.name===nm)){skip++;return}
+    if(isHead&&iTgt>=0&&String(r[iTgt]||"").trim()==="×"){off++;return}
+    if(isHead&&iSts>=0&&String(r[iSts]||"").includes("対象外")){off++;return}
     const addr=map.addr!=null?(r[map.addr]||"").trim():"";
-    let stn=map.stn!=null?(r[map.stn]||"").trim().replace(/駅$/,""):"";
+    let stnRaw=map.stn!=null?(r[map.stn]||"").trim().replace(/駅$/,""):"";
+    if(/未定|未確認/.test(addr)||/未定|未確認/.test(stnRaw)){off++;return}
+    if(!addr&&isHead&&iSts>=0&&/計画中/.test(String(r[iSts]||""))){off++;return}
+    const hit=findExisting(nm,addr,stnRaw.split("／")[0]);
+    if(hit&&hit.ambiguous){amb.push(nm+"（"+hit.cands.map(x=>x.name).join("・")+"のどれか）");skip++;return}
+    if(hit){
+      skip++;
+      if(doUpd){
+        const stn0=map.stn!=null?(r[map.stn]||"").trim().replace(/駅$/,""):"";
+        const ex0=map.ex!=null?(r[map.ex]||"").trim():"";
+        const w0=parseInt(map.walk!=null?r[map.walk]:"");
+        const target=stn0||hit.stn;
+        if(ex0||w0){const k=hit.id+"|"+target;OV.stn[k]=OV.stn[k]||{};
+          if(ex0)OV.stn[k].ex=ex0; if(w0)OV.stn[k].w=w0;
+          if(stn0&&!hit.stns.some(o=>o.s===stn0))
+            OV.extra[hit.id]=(OV.extra[hit.id]||[]).concat([stn0]);
+          upd++}
+      }
+      return;
+    }
+    let stn=stnRaw.split("／")[0];
     if(!stn)stn=nm.replace(/店$/,"");
     let blk=map.blk!=null?(r[map.blk]||"").trim().toUpperCase().slice(0,1):"";
     if(!BL[blk])blk=guessBlk(addr+stn+nm);
@@ -698,11 +844,14 @@ function doImport(text){
     addc++;
   });
   buildPicker();render();
-  document.getElementById("i_res").innerHTML="<b>"+addc+"件を登録しました。</b>"+
-    (skip?"　同名の既存店 "+skip+"件はスキップ。":"")+
+  document.getElementById("i_res").innerHTML="<b>新規 "+addc+"件を登録しました。</b>"+
+    (skip?"　既にある店 "+skip+"件は二重登録せず"+(upd?"、うち "+upd+"件は出口・徒歩を更新しました。":"スキップしました。"):"")+
     (unset?'　<span style="color:#C0392B">'+unset+"件はブロックが判定できず「Z：未分類」です。下の一覧で直してください。</span>":"")+
-    (dup.length?'<br><span style="color:#8A6212"><b>重複の可能性 '+dup.length+"件：</b>"+
-      dup.join("／")+"　既存店と同じ店なら、下の一覧から削除してください。</span>":"");
+    (off?"　点検対象外・住所未定の "+off+"行は取り込みませんでした。":"")+
+    (amb.length?'<br><span style="color:#C0392B"><b>判断できなかった '+amb.length+"件：</b>"+
+      amb.join("／")+"　同じ住所に複数の店があります。手動で確認してください。</span>":"")+
+    (dup.length?'<br><span style="color:#8A6212"><b>要確認 '+dup.length+"件（同じ駅に別の店あり）：</b>"+
+      dup.join("／")+"</span>":"");
   say(addc+"件を登録しました。");
 }
 function impText(){doImport(document.getElementById("i_tsv").value)}
@@ -737,8 +886,8 @@ function csvFull(){
       else if(r.k==="pair"){rows.push([c.name,c.date,"","","徒歩",r.a.name+"→"+r.b.name,r.sa.s,"","","",r.w,"",""])}
       else if(r.k==="train"){const g=r.g;
         rows.push([c.name,c.date,"",m2t(r.dep)+"〜"+m2t(r.arr),"電車",r.sa.s+"→"+r.sb.s,"","",
-          (g.line||"")+(g.track?" / "+g.track:""),g.car||"",g.d,"",
-          g.fixed?"確定済":(g.none?"データなし":(g.rev?"逆方向流用・要確認":"未検証"))])}});
+          (g.line||"")+(g.track?" / "+g.track:""),g.car||"",r.dur,"",
+          ((r.fd||r.fa)?"時刻確定":"")+(g.fixed?"／号車確定":(g.none?"／データなし":(g.rev?"／逆方向流用・要確認":"／未検証")))])}});
     rows.push([c.name,c.date,"",m2t(R.end),"終了","","","","","","","",""]);rows.push([])});
   dl("環境整備点検_詳細ルート案.csv",rows)}
 function expAll(){const b=new Blob([JSON.stringify({courses:courses,OV:OV},null,1)],{type:"application/json"});
@@ -747,7 +896,7 @@ function expAll(){const b=new Blob([JSON.stringify({courses:courses,OV:OV},null,
 function impAll(e){const f=e.target.files[0];if(!f)return;const r=new FileReader();
   r.onload=()=>{try{const o=JSON.parse(r.result);
     if(o.courses&&o.courses.length){courses=o.courses;ci=0}
-    if(o.OV)OV={stn:o.OV.stn||{},seg:o.OV.seg||{},pair:o.OV.pair||{},extra:o.OV.extra||{},news:o.OV.news||[]};
+    if(o.OV)OV={stn:o.OV.stn||{},seg:o.OV.seg||{},pair:o.OV.pair||{},extra:o.OV.extra||{},news:o.OV.news||[],hide:o.OV.hide||{}};
     buildPicker();render();say("読み込みました。")}catch(err){say("ファイルを読めませんでした。")}};
   r.readAsText(f)}
 ["insp","buf","same","close"].forEach(id=>document.getElementById(id).addEventListener("change",render));
