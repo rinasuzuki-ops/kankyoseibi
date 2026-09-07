@@ -90,6 +90,9 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
 .lg{border:1px solid #C9D6E2;border-radius:4px;background:#F7FAFC;margin:4px 0;overflow:hidden}
 .lg.lgng{border-color:#E2B4AC;background:#FDF6F4}
 .lg.lgrd{border-color:#C9BFA0;background:#FBF9F2}
+.hopn{background:#1F4E79;color:#fff;border-radius:2px;padding:0 6px;font-size:10px}
+.viaadd{width:88px!important;text-align:left!important}
+.lgt td.trf{background:#FFF8E7;color:#8A6212}
 .lg.lgrd .lghd{background:#F0EAD8;border-bottom-color:#DDD3B8}
 .lghd{display:flex;align-items:center;gap:8px;padding:4px 8px;background:#E8EFF6;
  border-bottom:1px solid #D6E0EA;font-size:12px;flex-wrap:wrap}
@@ -310,6 +313,29 @@ function normT(x){
   if(hh>29||mm>59)return null;
   return String(hh%24).padStart(2,"0")+":"+String(mm).padStart(2,"0");
 }
+function addVia(i,x){
+  x=String(x||"").trim().replace(/駅$/,"");
+  if(!x){render();return}
+  const it=C().items[i];it.via=(it.via||[]).concat([x]);
+  it.hdep=it.hdep||[];it.harr=it.harr||[];it.htw=it.htw||[];
+  render();say("乗換駅「"+x+"」を追加しました");
+}
+function delVia(i,k){
+  const it=C().items[i];it.via=(it.via||[]).filter((_,j)=>j!==k);
+  it.hdep=[];it.harr=[];it.htw=[];
+  render();say("乗換駅を削除しました");
+}
+function setHop(i,k,f,x){
+  const it=C().items[i];
+  if(f==="tw"){it.htw=it.htw||[];it.htw[k]=parseInt(x)||0;render();return}
+  const v=normT(x);
+  if(x&&String(x).trim()&&!v){say("時刻を読み取れません。9:17 のように入力してください。");render();return}
+  if(f==="dep"){it.hdep=it.hdep||[];it.hdep[k]=v}
+  else{it.harr=it.harr||[];it.harr[k]=v}
+  render();
+}
+function clearHop(i){const it=C().items[i];it.hdep=[];it.harr=[];it.htw=[];render();
+  say("この区間の時刻を自動計算に戻しました")}
 function setLegT(i,f,x){
   const v=normT(x);
   if(x&&String(x).trim()&&!v){say("時刻を読み取れません。9:17 のように入力してください。");render();return}
@@ -339,7 +365,9 @@ function rawLeg(a,b){
   else if(SEG[r])g={...SEG[r],car:"",track:"",key:k,rev:true};
   else g={d:20,line:"",track:"",car:"",via:"",n:0,key:k,rev:false,none:true};
   const o=OV.seg[k];
-  if(o){if(o.d!=null){g.d=o.d;g.none=false;g.fixed=true}if(o.car!=null){g.car=o.car;g.fixed=true}}
+  if(o){if(o.d!=null){g.d=o.d;g.none=false;g.fixed=true}
+    if(o.car!=null){g.car=o.car;g.fixed=true}
+    if(o.door!=null)g.door=o.door;}
   return g;
 }
 /* 出発駅・到着駅の最適な組み合わせを選ぶ */
@@ -488,14 +516,24 @@ function calc(c){
         out.push({k:"pair",a:prev,b:s,w:w,key:pkey,ai:prevIdx,bi:idx,idx:idx,sa:P.a,sb:P.b,mode:it.mode});cur+=w;
       }else{
         cur+=P.a.w;const atStn=cur;
-        const fd=it.dept?t2m(it.dept):null, fa=it.arrt?t2m(it.arrt):null;
-        const dep=(fd!=null)?fd:atStn+BUF;
-        const dur=(fa!=null)?Math.max(1,fa-dep):P.g.d;
-        const arr=dep+dur;
-        out.push({k:"train",a:prev,b:s,ai:prevIdx,bi:idx,idx:idx,sa:P.a,sb:P.b,g:P.g,
-          atStn:atStn,dep:dep,arr:arr,dur:dur,wait:dep-atStn,
-          fd:(fd!=null),fa:(fa!=null),mode:it.mode});
-        cur=arr+P.b.w;
+        const via=(it.via||[]).filter(x=>x);
+        const hops=[P.a.s].concat(via,[P.b.s]);
+        const HD=it.hdep||[],HA=it.harr||[],HW=it.htw||[];
+        let t=atStn;const segs=[];
+        for(let k=0;k<hops.length-1;k++){
+          const g2=(k===0&&!via.length)?P.g:rawLeg(hops[k],hops[k+1]);
+          const wb=(k===0)?BUF:(HW[k-1]!=null?HW[k-1]:BUF);
+          const fd2=HD[k]?t2m(HD[k]):null, fa2=HA[k]?t2m(HA[k]):null;
+          const dep2=(fd2!=null)?fd2:t+wb;
+          const dur2=(fa2!=null)?Math.max(1,fa2-dep2):g2.d;
+          const arr2=dep2+dur2;
+          segs.push({g:g2,from:hops[k],to:hops[k+1],k:k,at:t,dep:dep2,arr:arr2,dur:dur2,
+            wait:dep2-t,fd:(fd2!=null),fa:(fa2!=null),tw:wb});
+          t=arr2;
+        }
+        out.push({k:"train",a:prev,b:s,ai:prevIdx,bi:idx,idx:idx,sa:P.a,sb:P.b,
+          hops:segs,atStn:atStn,arr:t,mode:it.mode,via:via});
+        cur=t+P.b.w;
       }
       out.push({k:"stop",s:s,idx:idx,stn:P.b,a:cur,b:cur+INSP,c:cur-CL});
     }else{
@@ -587,44 +625,59 @@ function render(){
               :'本数が少ない路線は、発車時刻を必ず固定してください。')+'</span></td></tr>'+
         '</table></div></div></div>';
     }else if(r.k==="train"){
-      const g=r.g;links.push({a:r.sa.s,b:r.sb.s,dep:r.atStn});
-      if(g.none)missing.push(r.sa.s+"→"+r.sb.s);
-      const btns=chk(yahoo(C(),r.sa.s,r.sb.s,r.atStn),'乗換を調べる')+
-        chk(wada(r.sb.s),'号車を調べる','w')+
-        chk(gmap(loc(r.a),loc(r.b),"transit"),'地図');
-      const st1='<b>'+m2t(r.atStn)+'</b> 着'+
-        (r.wait<0?'　<b class="ng">この電車に間に合いません（'+(-r.wait)+'分不足）</b>'
-                 :'　待ち <b'+(r.wait>=20?' class="wn"':'')+'>'+r.wait+'分</b>');
-      const status=g.fixed?'<b class="okk">号車は確定済み</b>':
-        (g.none?'<b class="ng">この区間のデータがありません</b>':
-        (g.rev?'<b class="ng">逆方向の実績を流用：号車は要確認</b>':
-        (g.fresh?'前回使用値':'<b class="wn">しばらく未使用</b>')+'（未検証・'+g.n+'回使用）'));
+      const nhops=r.hops.length;
+      r.hops.forEach(x=>{if(x.g.none)missing.push(x.from+"→"+x.to);
+        links.push({a:x.from,b:x.to,dep:x.at})});
+      const bad=r.hops.some(x=>x.g.none);
       html+='<div class="row train"><div class="t"></div><div class="rail"></div><div class="body">'+
-        '<div class="lg'+(g.none?' lgng':'')+'">'+
-        '<div class="lghd">'+modeBtn(r.idx,r.mode)+'<b>'+r.sa.s+' → '+r.sb.s+'</b>'+
-        '<span class="sp"></span>'+btns+'</div>'+
+        '<div class="lg'+(bad?' lgng':'')+'"><div class="lghd">'+modeBtn(r.idx,r.mode)+
+        '<b>'+[r.sa.s].concat(r.via,[r.sb.s]).join(' → ')+'</b>'+
+        (nhops>1?'<span class="hopn">'+nhops+'区間・乗換'+(nhops-1)+'回</span>':'')+
+        '<span class="sp"></span>'+
+        '<input class="ed viaadd" placeholder="＋乗換駅" value="" onchange="addVia('+r.idx+',this.value)">'+
+        '<button class="mini" onclick="clearHop('+r.idx+')">時刻を自動に</button></div>'+
         '<table class="lgt">'+
         '<tr><td class="k">店 → 駅</td><td>'+selHTML(r.a,r.sa.s,r.ai,"dep")+
           '　徒歩 <input class="ed" value="'+r.sa.w+'" onchange="setStn(\''+r.a.id+'\',\''+esc(r.sa.s)+
-          '\',\'w\',this.value)"> 分　'+st1+
-          chk(gmap(loc(r.a),r.sa.s+"駅","walking"),'徒歩')+'</td></tr>'+
-        '<tr><td class="k">電車</td><td>発 <input class="edt'+(r.fd?' fixed':'')+'" value="'+
-          (r.fd?m2t(r.dep):'')+'" placeholder="'+m2t(r.dep)+'" onchange="setLegT('+r.idx+',\'dept\',this.value)">'+
-          '　着 <input class="edt'+(r.fa?' fixed':'')+'" value="'+(r.fa?m2t(r.arr):'')+
-          '" placeholder="'+m2t(r.arr)+'" onchange="setLegT('+r.idx+',\'arrt\',this.value)">'+
-          '　所要 '+r.dur+'分'+
-          (r.fa?'':'（<input class="ed" value="'+g.d+'" onchange="setSeg(\''+g.key+'\',\'d\',this.value)">分）')+
-          ((r.fd||r.fa)?' <button class="mini" onclick="clearT('+r.idx+')">時刻を自動に戻す</button>':'')+
-          (g.line?'<div class="meta">'+g.line+(g.track?'／'+g.track:'')+(g.via?'／乗換：'+g.via:'')+'</div>':'')+
-          '</td></tr>'+
-        '<tr><td class="k">乗車位置</td><td><input class="ed wide" value="'+esc(g.car)+
-          '" placeholder="要確認" onchange="setSeg(\''+g.key+'\',\'car\',this.value)">'+
-          '　<span class="meta">'+status+'</span></td></tr>'+
-        '<tr><td class="k">駅 → 店</td><td>'+selHTML(r.b,r.sb.s,r.bi,"arr")+
-          '　出口 <input class="ed wide" value="'+esc(r.sb.ex)+'" placeholder="出口" onchange="setStn(\''+
-          r.b.id+'\',\''+esc(r.sb.s)+'\',\'ex\',this.value)">'+
-          '　徒歩 <input class="ed" value="'+r.sb.w+'" onchange="setStn(\''+r.b.id+'\',\''+esc(r.sb.s)+
-          '\',\'w\',this.value)"> 分'+chk(gmap(r.sb.s+"駅",loc(r.b),"walking"),'徒歩')+'</td></tr>'+
+          '\',\'w\',this.value)"> 分　<b>'+m2t(r.atStn)+'</b> 着'+
+          chk(gmap(loc(r.a),r.sa.s+"駅","walking"),'徒歩')+'</td></tr>';
+      r.hops.forEach((x,k)=>{
+        const g=x.g;
+        if(k>0){
+          html+='<tr><td class="k">乗換 '+k+'</td><td class="trf">'+x.from+'駅で乗り換え　'+
+            '<input class="ed" value="'+x.tw+'" onchange="setHop('+r.idx+','+(k-1)+',\'tw\',this.value)"> 分'+
+            (x.wait<0?'　<b class="ng">間に合いません（'+(-x.wait)+'分不足）</b>':
+              (x.wait!==x.tw?'　<span class="meta">実待ち '+x.wait+'分</span>':''))+
+            '　<button class="mini" onclick="delVia('+r.idx+','+(k-1)+')">この乗換を削除</button></td></tr>';
+        }
+        const status=g.fixed?'<b class="okk">確定済み</b>':
+          (g.none?'<b class="ng">データなし</b>':
+          (g.rev?'<b class="ng">逆方向流用・要確認</b>':
+          (g.fresh?'前回使用値':'<b class="wn">しばらく未使用</b>')+'（未検証・'+g.n+'回）'));
+        html+='<tr><td class="k">'+(nhops>1?'電車 '+(k+1):'電車')+'</td><td>'+
+          '<b>'+x.from+' → '+x.to+'</b>　発 <input class="edt'+(x.fd?' fixed':'')+'" value="'+
+          (x.fd?m2t(x.dep):'')+'" placeholder="'+m2t(x.dep)+'" onchange="setHop('+r.idx+','+k+',\'dep\',this.value)">'+
+          '　着 <input class="edt'+(x.fa?' fixed':'')+'" value="'+(x.fa?m2t(x.arr):'')+
+          '" placeholder="'+m2t(x.arr)+'" onchange="setHop('+r.idx+','+k+',\'arr\',this.value)">'+
+          '　所要 '+(x.fa?x.dur+'分':'<input class="ed" value="'+g.d+
+            '" onchange="setSeg(\''+g.key+'\',\'d\',this.value)"> 分')+
+          (k===0&&x.wait<0?'　<b class="ng">間に合いません（'+(-x.wait)+'分不足）</b>':
+            (k===0?'　<span class="meta">待ち '+x.wait+'分</span>':''))+
+          (g.line?'<div class="meta">'+g.line+(g.track?'／'+g.track:'')+'</div>':'')+'</td></tr>'+
+          '<tr><td class="k">乗車位置</td><td>号車 <input class="ed wide" value="'+esc(g.car)+
+          '" placeholder="例：8両編成 6号車" onchange="setSeg(\''+g.key+'\',\'car\',this.value)">'+
+          '　ドア <input class="ed wide" value="'+esc(g.door||"")+
+          '" placeholder="例：前から3番目のドア" onchange="setSeg(\''+g.key+'\',\'door\',this.value)">'+
+          '　<span class="meta">'+status+'</span>'+
+          chk(yahoo(C(),x.from,x.to,x.at),'乗換を調べる')+
+          chk(wada(x.to),'号車・ドアを調べる','w')+'</td></tr>';
+      });
+      html+='<tr><td class="k">駅 → 店</td><td>'+selHTML(r.b,r.sb.s,r.bi,"arr")+
+        '　出口 <input class="ed wide" value="'+esc(r.sb.ex)+'" placeholder="出口" onchange="setStn(\''+
+        r.b.id+'\',\''+esc(r.sb.s)+'\',\'ex\',this.value)">'+
+        '　徒歩 <input class="ed" value="'+r.sb.w+'" onchange="setStn(\''+r.b.id+'\',\''+esc(r.sb.s)+
+        '\',\'w\',this.value)"> 分'+chk(gmap(r.sb.s+"駅",loc(r.b),"walking"),'徒歩')+
+        chk(gmap(loc(r.a),loc(r.b),"transit"),'店→店の地図')+'</td></tr>'+
         '</table></div></div></div>';
     }else{
       html+='<div class="row"><div class="t num">'+m2t(r.a)+'-'+m2t(r.b)+'</div>'+
@@ -681,11 +734,12 @@ function richHTML(){
           r.a.name+" → "+r.b.name],CL_TRAIN);
         h+=tr(["到着",m2t(r.arr),"","","","",""],CL_TRAIN);
       }else if(r.k==="train"){
-        const g=r.g;
         h+=tr(["徒歩"+r.sa.w+"分","","","","","",r.a.name+" → "+r.sa.s+"駅"],CL_WALK);
-        h+=tr(["出発",m2t(r.dep)+((r.fd||r.fa)?" ★":""),r.sa.s+"駅",g.line||"",g.track||"",g.car||"要確認",""],CL_TRAIN);
-        if(g.via)h+=tr(["乗り換え","",g.via,"","","",""],CL_TRAIN);
-        h+=tr(["到着",m2t(r.arr),r.sb.s+"駅","","","",""],CL_TRAIN);
+        r.hops.forEach((x,k)=>{const g=x.g;
+          if(k>0)h+=tr(["乗り換え",m2t(x.at),x.from+"駅","","",x.tw+"分",""],CL_TRAIN);
+          h+=tr(["出発",m2t(x.dep)+((x.fd||x.fa)?" ★":""),x.from+"駅",g.line||"",g.track||"",
+            (g.car||"要確認")+(g.door?"／"+g.door:""),""],CL_TRAIN);
+          h+=tr(["到着",m2t(x.arr),x.to+"駅","","","",""],CL_TRAIN)});
         h+=tr(["徒歩"+r.sb.w+"分","","","",r.sb.ex?"出口 "+r.sb.ex:"","",r.sb.s+"駅 → "+r.b.name],CL_WALK);
       }
     });
@@ -938,7 +992,8 @@ function csvRough(){
     R.rows.forEach(r=>{
       if(r.k==="stop"){k++;rows.push([c.name,c.date,k,m2t(r.a)+"〜"+m2t(r.b),"点検",r.s.name,r.stn.s])}
       else if(r.k==="ev"){rows.push([c.name,c.date,"",m2t(r.t)+(r.min?"〜"+m2t(r.t+r.min):""),r.label,r.min?r.min+"分":"車内",""])}
-      else if(r.k==="train"){rows.push([c.name,c.date,"",m2t(r.dep)+"〜"+m2t(r.arr),"移動",r.sa.s+"→"+r.sb.s,""])}
+      else if(r.k==="train"){r.hops.forEach((x,k)=>rows.push([c.name,c.date,"",
+        m2t(x.dep)+"〜"+m2t(x.arr),(r.hops.length>1?"移動"+(k+1):"移動"),x.from+"→"+x.to,""]))}
       else if(r.k==="ride"){rows.push([c.name,c.date,"",m2t(r.dep)+"〜"+m2t(r.arr),
         (r.kind==="taxi"?"タクシー":"バス"),r.a.name+"→"+r.b.name,r.line||""])}
       else if(r.k==="pair"){rows.push([c.name,c.date,"","","徒歩",r.a.name+"→"+r.b.name,r.sa.s])}});
@@ -954,10 +1009,13 @@ function csvFull(){
       else if(r.k==="ride"){rows.push([c.name,c.date,"",m2t(r.dep)+"〜"+m2t(r.arr),
         (r.kind==="taxi"?"タクシー":"バス"),r.a.name+"→"+r.b.name,"",r.stop||"",r.line||"","",r.dur,"",
         ((r.fd||r.fa)?"時刻確定":"")])}
-      else if(r.k==="train"){const g=r.g;
-        rows.push([c.name,c.date,"",m2t(r.dep)+"〜"+m2t(r.arr),"電車",r.sa.s+"→"+r.sb.s,"","",
-          (g.line||"")+(g.track?" / "+g.track:""),g.car||"",r.dur,"",
-          ((r.fd||r.fa)?"時刻確定":"")+(g.fixed?"／号車確定":(g.none?"／データなし":(g.rev?"／逆方向流用・要確認":"／未検証")))])}});
+      else if(r.k==="train"){r.hops.forEach((x,k)=>{const g=x.g;
+        if(k>0)rows.push([c.name,c.date,"","","乗換",x.from+"駅","","","","",x.tw,"",""]);
+        rows.push([c.name,c.date,"",m2t(x.dep)+"〜"+m2t(x.arr),
+          (r.hops.length>1?"電車"+(k+1):"電車"),x.from+"→"+x.to,"","",
+          (g.line||"")+(g.track?" / "+g.track:""),
+          (g.car||"")+(g.door?" / "+g.door:""),x.dur,"",
+          ((x.fd||x.fa)?"時刻確定":"")+(g.fixed?"／号車確定":(g.none?"／データなし":(g.rev?"／逆方向流用・要確認":"／未検証")))])})}});
     rows.push([c.name,c.date,"",m2t(R.end),"終了","","","","","","","",""]);rows.push([])});
   dl("環境整備点検_詳細ルート案.csv",rows)}
 function expAll(){const b=new Blob([JSON.stringify({courses:courses,OV:OV},null,1)],{type:"application/json"});
