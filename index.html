@@ -90,6 +90,13 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
 .lg{border:1px solid #C9D6E2;border-radius:4px;background:#F7FAFC;margin:4px 0;overflow:hidden}
 .lg.lgng{border-color:#E2B4AC;background:#FDF6F4}
 .lg.lgrd{border-color:#C9BFA0;background:#FBF9F2}
+.posbox{display:inline-block;vertical-align:middle}
+.posrow{display:flex;align-items:center;gap:4px;margin-bottom:3px;font-size:11px;color:#5A6B7B}
+.ed.cars{width:78px!important;text-align:left!important}
+.ed.carn{width:78px!important;text-align:left!important}
+.ed.doorn{width:96px!important;text-align:left!important}
+.ed.ln{width:120px!important;text-align:left!important}
+.ed.ln2{width:140px!important;text-align:left!important}
 .hopn{background:#1F4E79;color:#fff;border-radius:2px;padding:0 6px;font-size:10px}
 .viaadd{width:88px!important;text-align:left!important}
 .lgt td.trf{background:#FFF8E7;color:#8A6212}
@@ -296,6 +303,36 @@ function unhideStn(id){OV.hide=OV.hide||{};delete OV.hide[id];
   say("外した駅を戻しました");render()}
 function setStn(id,stn,f,x){const k=id+"|"+stn;OV.stn[k]=OV.stn[k]||{};
   OV.stn[k][f]=(f==="w")?(parseInt(x)||0):x;render()}
+function posOf(g){
+  if(g.pos&&g.pos.length)return g.pos;
+  const src=String(g.car||"").replace(/[０-９]/g,c=>String.fromCharCode(c.charCodeAt(0)-0xFEE0));
+  const parts=src.replace(/(^|[^\d])(\d+\s*両編成)/g,"$1\u0000$2")
+    .split("\u0000").filter(x=>x.trim());
+  if(!parts.length)return [{cars:"",car:"",door:String(g.door||"")}];
+  return parts.map((p,i)=>{
+    const m=p.match(/(\d+\s*両編成)/);
+    return {cars:m?m[1].replace(/\s/g,""):"",
+            car:p.replace(/\d+\s*両編成/,"").replace(/^[\s、,／\/]+|[\s、,／\/]+$/g,"").trim(),
+            door:i===0?String(g.door||""):""};
+  });
+}
+function basePos(k,g){
+  OV.seg[k]=OV.seg[k]||{};
+  if(!OV.seg[k].pos)OV.seg[k].pos=posOf(g).map(p=>({...p}));
+  return OV.seg[k].pos;
+}
+function setPos(k,i,f,x,gj){
+  const P=basePos(k,JSON.parse(gj));
+  P[i]=P[i]||{cars:"",car:"",door:""};P[i][f]=x;render();
+}
+function addPos(k,gj){const P=basePos(k,JSON.parse(gj));
+  P.push({cars:"",car:"",door:""});render()}
+function delPos(k,i,gj){const P=basePos(k,JSON.parse(gj));
+  P.splice(i,1);if(!P.length)P.push({cars:"",car:"",door:""});render()}
+function posText(g){
+  return posOf(g).filter(p=>p.cars||p.car||p.door)
+    .map(p=>[p.cars,p.car,p.door].filter(x=>x).join(" ")).join(" ／ ");
+}
 function setSeg(k,f,x){OV.seg[k]=OV.seg[k]||{};OV.seg[k][f]=(f==="d")?(parseInt(x)||0):x;render()}
 function setPair(k,x){OV.pair[k]=parseInt(x)||0;render()}
 function setEv(i,f,x){C().items[i][f]=(f==="min")?(parseInt(x)||0):x;render()}
@@ -350,6 +387,20 @@ function setMode(i,m){C().items[i].mode=m||null;
   render();
   say(m==="train"?"この区間を電車に切り替えました":
       m==="walk"?"この区間を徒歩に切り替えました":"この区間を自動に戻しました")}
+function posHTML(g){
+  const gj=esc(JSON.stringify({car:g.car||"",door:g.door||"",pos:g.pos||null}));
+  const P=posOf(g);
+  return '<div class="posbox">'+P.map((p,i)=>
+    '<div class="posrow">編成 <input class="ed cars" value="'+esc(p.cars)+
+    '" placeholder="10両編成" onchange="setPos(\''+g.key+'\','+i+',\'cars\',this.value,\''+gj+'\')">'+
+    ' 号車 <input class="ed carn" value="'+esc(p.car)+
+    '" placeholder="6号車" onchange="setPos(\''+g.key+'\','+i+',\'car\',this.value,\''+gj+'\')">'+
+    ' ドア <input class="ed doorn" value="'+esc(p.door)+
+    '" placeholder="前から3番目" onchange="setPos(\''+g.key+'\','+i+',\'door\',this.value,\''+gj+'\')">'+
+    (P.length>1?' <button class="mini" onclick="delPos(\''+g.key+'\','+i+',\''+gj+'\')">×</button>':'')+
+    '</div>').join("")+
+    '<button class="mini" onclick="addPos(\''+g.key+'\',\''+gj+'\')">＋編成パターンを追加</button></div>';
+}
 function modeBtn(idx,mode){
   const b=(m,t)=>'<button class="mini'+((mode||null)===m?" onmode":"")+
     '" onclick="setMode('+idx+','+(m===null?"null":"'"+m+"'")+')">'+t+'</button>';
@@ -367,7 +418,10 @@ function rawLeg(a,b){
   const o=OV.seg[k];
   if(o){if(o.d!=null){g.d=o.d;g.none=false;g.fixed=true}
     if(o.car!=null){g.car=o.car;g.fixed=true}
-    if(o.door!=null)g.door=o.door;}
+    if(o.door!=null)g.door=o.door;
+    if(o.line!=null)g.line=o.line;
+    if(o.track!=null)g.track=o.track;
+    if(o.pos!=null){g.pos=o.pos;g.fixed=true}}
   return g;
 }
 /* 出発駅・到着駅の最適な組み合わせを選ぶ */
@@ -663,11 +717,12 @@ function render(){
             '" onchange="setSeg(\''+g.key+'\',\'d\',this.value)"> 分')+
           (k===0&&x.wait<0?'　<b class="ng">間に合いません（'+(-x.wait)+'分不足）</b>':
             (k===0?'　<span class="meta">待ち '+x.wait+'分</span>':''))+
-          (g.line?'<div class="meta">'+g.line+(g.track?'／'+g.track:'')+'</div>':'')+'</td></tr>'+
-          '<tr><td class="k">乗車位置</td><td>号車 <input class="ed wide" value="'+esc(g.car)+
-          '" placeholder="例：8両編成 6号車" onchange="setSeg(\''+g.key+'\',\'car\',this.value)">'+
-          '　ドア <input class="ed wide" value="'+esc(g.door||"")+
-          '" placeholder="例：前から3番目のドア" onchange="setSeg(\''+g.key+'\',\'door\',this.value)">'+
+          '<div class="meta">路線 <input class="ed ln" value="'+esc(g.line||"")+
+          '" placeholder="例：京浜東北線" onchange="setSeg(\''+g.key+'\',\'line\',this.value)">'+
+          '　番線・行先 <input class="ed ln2" value="'+esc(g.track||"")+
+          '" placeholder="例：3番線 大宮行" onchange="setSeg(\''+g.key+'\',\'track\',this.value)">'+
+          '</div></td></tr>'+
+          '<tr><td class="k">乗車位置</td><td>'+posHTML(g)+
           '　<span class="meta">'+status+'</span>'+
           chk(yahoo(C(),x.from,x.to,x.at),'乗換を調べる')+
           chk(wada(x.to),'号車・ドアを調べる','w')+'</td></tr>';
@@ -738,7 +793,7 @@ function richHTML(){
         r.hops.forEach((x,k)=>{const g=x.g;
           if(k>0)h+=tr(["乗り換え",m2t(x.at),x.from+"駅","","",x.tw+"分",""],CL_TRAIN);
           h+=tr(["出発",m2t(x.dep)+((x.fd||x.fa)?" ★":""),x.from+"駅",g.line||"",g.track||"",
-            (g.car||"要確認")+(g.door?"／"+g.door:""),""],CL_TRAIN);
+            posText(g)||"要確認",""],CL_TRAIN);
           h+=tr(["到着",m2t(x.arr),x.to+"駅","","","",""],CL_TRAIN)});
         h+=tr(["徒歩"+r.sb.w+"分","","","",r.sb.ex?"出口 "+r.sb.ex:"","",r.sb.s+"駅 → "+r.b.name],CL_WALK);
       }
@@ -1014,7 +1069,7 @@ function csvFull(){
         rows.push([c.name,c.date,"",m2t(x.dep)+"〜"+m2t(x.arr),
           (r.hops.length>1?"電車"+(k+1):"電車"),x.from+"→"+x.to,"","",
           (g.line||"")+(g.track?" / "+g.track:""),
-          (g.car||"")+(g.door?" / "+g.door:""),x.dur,"",
+          posText(g),x.dur,"",
           ((x.fd||x.fa)?"時刻確定":"")+(g.fixed?"／号車確定":(g.none?"／データなし":(g.rev?"／逆方向流用・要確認":"／未検証")))])})}});
     rows.push([c.name,c.date,"",m2t(R.end),"終了","","","","","","","",""]);rows.push([])});
   dl("環境整備点検_詳細ルート案.csv",rows)}
