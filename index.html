@@ -90,6 +90,19 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
 .lg{border:1px solid #C9D6E2;border-radius:4px;background:#F7FAFC;margin:4px 0;overflow:hidden}
 .lg.lgng{border-color:#E2B4AC;background:#FDF6F4}
 .lg.lgrd{border-color:#C9BFA0;background:#FBF9F2}
+.orow{display:flex;align-items:center;gap:8px;padding:6px 0;font-size:13px;flex-wrap:wrap}
+.crow{display:flex;align-items:center;gap:8px;padding:3px 0;font-size:12px}
+.crow input[type=color]{width:40px;height:24px;padding:0;border:1px solid var(--line);
+ border-radius:3px;background:#fff;cursor:pointer}
+.cchip{margin-left:auto;font-size:10px;padding:1px 8px;border-radius:2px;border:1px solid var(--line);
+ font-family:ui-monospace,Consolas,monospace}
+.pairline{display:flex;align-items:center;gap:8px;padding:3px 8px;font-size:12px;
+ background:#F4F6F8;border-left:3px solid #C9D1DA;border-radius:0 3px 3px 0;margin:3px 0}
+.pairline .sp{flex:1}
+.pairline .pn{color:#101821}
+.pairedit{padding:4px 10px;background:#F7FAFC;border:1px solid #D6E0EA;border-radius:3px;
+ margin:0 0 4px 0;font-size:12px}
+.orow .sp{flex:1}
 .posbox{display:inline-block;vertical-align:middle}
 .posrow{display:flex;align-items:center;gap:4px;margin-bottom:3px;font-size:11px;color:#5A6B7B}
 .ed.cars{width:78px!important;text-align:left!important}
@@ -162,6 +175,7 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
         <div><label>乗車待ち(分)</label><input id="buf" type="number" value="4"></div>
         <div><label>同駅の店間(分)</label><input id="same" type="number" value="3"></div>
         <div><label>閉店の前倒し(分)</label><input id="close" type="number" value="180"></div>
+        <div><label>集合(点検の何分前)</label><input id="meet" type="number" value="10"></div>
       </div>
     </div>
     <div class="card"><h2>3. 店舗を追加</h2>
@@ -231,11 +245,11 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
       <div class="pad"><button class="btn ghost sm" onclick="clearAll()">このコースを空にする</button></div>
     </div>
     <div class="card">
-      <h2>7. ざっくり出力（承認用）</h2>
-      <div class="pad">
-        <button class="btn" onclick="csvRough()">ざっくり版をExcelに出力</button>
-        <button class="btn ghost" onclick="csvFull()">詳細版（駅・号車・出口つき）</button>
-        <p class="hint">全コースまとめて1ファイルに出ます。</p>
+      <h2>7. 出力（1日ずつ出せます）</h2>
+      <div class="pad" id="outp"></div>
+      <div class="pad" style="border-top:1px solid #EDF0F3">
+        <button class="btn ghost sm" onclick="tgTheme()">運行表の色を変える</button>
+        <div id="themebox" style="display:none;margin-top:10px"></div>
       </div>
     </div>
     <div class="card">
@@ -250,14 +264,9 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
       <h2>9. 店舗発表用（閉店時刻つき）</h2>
       <div class="pad" id="announce"></div>
     </div>
-    <div class="card">
-      <h2>10. 運行表（書式つき・Excel／スプレッドシート貼り付け用）</h2>
-      <div class="pad">
-        <button class="btn" onclick="copyRich()">書式つきでコピー</button>
-        <button class="btn ghost" onclick="dlXls()">Excelファイルで保存</button>
-        <p class="hint">「書式つきでコピー」→ Excelやスプレッドシートにそのまま貼ると、色・罫線ごと入ります。</p>
-      </div>
-      <div class="pad" style="padding-top:0;overflow:auto" id="rich"></div>
+    <div class="card" id="prevcard" style="display:none">
+      <h2>10. 運行表プレビュー</h2>
+      <div class="pad" style="padding-top:10px;overflow:auto" id="rich"></div>
     </div>
   </div>
 </div>
@@ -567,7 +576,9 @@ function calc(c){
       const P=pick(prev,s,c.items[prevIdx].dep,it.arr,BUF,SAME,it.mode,OV.pair[pkey]);
       if(P.walkOnly){
         const w=OV.pair[pkey]!=null?OV.pair[pkey]:SAME;
-        out.push({k:"pair",a:prev,b:s,w:w,key:pkey,ai:prevIdx,bi:idx,idx:idx,sa:P.a,sb:P.b,mode:it.mode});cur+=w;
+        const lastR=out[out.length-2];
+        var samerun=!!(lastR&&lastR.k==="pair"&&lastR.sa.s===P.a.s);
+        out.push({k:"pair",a:prev,b:s,w:w,key:pkey,ai:prevIdx,bi:idx,idx:idx,sa:P.a,sb:P.b,mode:it.mode,samerun:samerun});cur+=w;
       }else{
         cur+=P.a.w;const atStn=cur;
         const via=(it.via||[]).filter(x=>x);
@@ -628,7 +639,7 @@ function render(){
     document.getElementById("sched").innerHTML='<div class="empty">左から店舗を追加してください。</div>';
     document.getElementById("announce").innerHTML="";document.getElementById("warn").innerHTML="";
     document.getElementById("links").innerHTML="";document.getElementById("rich").innerHTML="";
-    save();return;
+    outPanel();save();return;
   }
   const R=calc(C());let html="",ann=[],missing=[],links=[];
   R.rows.forEach(r=>{
@@ -640,15 +651,17 @@ function render(){
         (r.type==="quiz"?'　<span class="meta">※車内で実施</span>':
          '　<span class="meta">再集合 '+m2t(r.t+r.min)+'</span>')+'</div></div></div>';
     }else if(r.k==="pair"){
-      html+='<div class="row"><div class="t"></div><div class="rail"></div><div class="body"><div class="lg">'+
-        '<div class="lghd">'+modeBtn(r.idx,r.mode)+'<b>'+r.sa.s+'駅エリア内を徒歩</b>'+
-        '<span class="sp"></span>'+chk(gmap(loc(r.a),loc(r.b),"walking"),'地図')+'</div>'+
-        '<table class="lgt">'+
-        '<tr><td class="k">徒歩</td><td>'+r.a.name+' → '+r.b.name+
-          '　<input class="ed" value="'+r.w+'" onchange="setPair(\''+r.key+'\',this.value)"> 分</td></tr>'+
-        '<tr><td class="k">使う駅</td><td>出発 '+selHTML(r.a,r.sa.s,r.ai,"dep")+
-          '　到着 '+selHTML(r.b,r.sb.s,r.bi,"arr")+'</td></tr>'+
-        '</table></div></div></div>';
+      const op=EDIT.has("P"+r.idx);
+      html+='<div class="row"><div class="t"></div><div class="rail"></div><div class="body">'+
+        '<div class="pairline"><span class="pw">徒歩 <input class="ed" value="'+r.w+
+        '" onchange="setPair(\''+r.key+'\',this.value)"> 分</span>'+
+        '<span class="pn">'+r.a.name+' → '+r.b.name+'</span>'+
+        (r.samerun?'':'<span class="meta">（'+r.sa.s+'駅エリア内）</span>')+'<span class="sp"></span>'+
+        chk(gmap(loc(r.a),loc(r.b),"walking"),'地図')+
+        '<button class="mini'+(op?' onmode':'')+'" onclick="tgEdit(\'P'+r.idx+'\')">設定⋯</button></div>'+
+        (op?'<div class="pairedit">'+modeBtn(r.idx,r.mode)+'　出発 '+selHTML(r.a,r.sa.s,r.ai,"dep")+
+          '　到着 '+selHTML(r.b,r.sb.s,r.bi,"arr")+'</div>':'')+
+        '</div></div>';
     }else if(r.k==="ride"){
       const isT=r.kind==="taxi";
       html+='<div class="row train"><div class="t"></div><div class="rail"></div><div class="body">'+
@@ -737,10 +750,10 @@ function render(){
     }else{
       html+='<div class="row"><div class="t num">'+m2t(r.a)+'-'+m2t(r.b)+'</div>'+
         '<div class="rail"><span class="dot"></span></div><div class="body">'+
-        '<div class="stopname">'+r.s.name+'</div><div class="meta">'+r.stn.s+'駅'+
+        '<div class="stopname">'+r.s.name+'</div><div class="meta">集合 <b>'+m2t(r.a-n("meet"))+'</b>　'+r.stn.s+'駅'+
         (r.stn.ex?'／出口 '+r.stn.ex:'')+(r.s.note?'　<b style="color:#8A6212">'+r.s.note+'</b>':'')+
         '</div></div></div>';
-      ann.push({name:r.s.name,stn:r.stn.s,a:m2t(r.a),b:m2t(r.b),c:m2t(r.c)});
+      ann.push({name:r.s.name,stn:r.stn.s,a:m2t(r.a),b:m2t(r.b),c:m2t(r.c),m:m2t(r.a-n("meet"))});
     }
   });
   document.getElementById("sched").innerHTML=html;
@@ -751,81 +764,173 @@ function render(){
     '<a href="'+yahoo(C(),l.a,l.b,l.dep)+'" target="_blank" rel="noopener">'+m2t(l.dep)+'　'+
     l.a+' → '+l.b+'（Yahoo!乗換）</a>').join("");
   document.getElementById("announce").innerHTML=
-    '<table><tr><th>順</th><th>店舗</th><th>最寄駅</th><th>点検時刻</th><th>閉店時刻</th></tr>'+
+    '<table><tr><th>順</th><th>店舗</th><th>最寄駅</th><th>集合</th><th>点検時刻</th><th>閉店時刻</th></tr>'+
     ann.map((x,i)=>'<tr><td class="num">'+(i+1)+'</td><td>'+x.name+'</td><td>'+x.stn+
-    '</td><td class="num">'+x.a+'〜'+x.b+'</td><td class="num"><b>'+x.c+'</b></td></tr>').join("")+
+    '</td><td class="num">'+x.m+'</td><td class="num">'+x.a+'〜'+x.b+
+    '</td><td class="num"><b>'+x.c+'</b></td></tr>').join("")+
     '</table><p style="margin:10px 0 0"><button class="btn ghost sm" onclick="copyTbl()">この表をコピー</button>'+
     ' <span class="meta">終了予定 '+m2t(R.end)+'</span></p>';
   window._ann=ann;
-  document.getElementById("rich").innerHTML=richHTML();
+  outPanel();themePanel();
+  const pv=document.getElementById("prev"),pc=document.getElementById("prevcard");
+  if(pv&&pv.checked){pc.style.display="";document.getElementById("rich").innerHTML=richHTML(ci)}
+  else{pc.style.display="none";document.getElementById("rich").innerHTML=""}
   save();
 }
-const CL_HEAD="background:#16324F;color:#fff;font-weight:bold;border:1px solid #9BB0C4;padding:4px 8px;font-size:12px;";
-const CL_BASE="border:1px solid #B8C7D6;padding:3px 8px;font-size:12px;";
-const CL_STOP=CL_BASE+"background:#DCE6F1;font-weight:bold;";
-const CL_TRAIN=CL_BASE+"background:#EAF1F8;";
-const CL_WALK=CL_BASE+"background:#F4F6F8;color:#5A6B7B;";
-const CL_EV=CL_BASE+"background:#FFF2CC;color:#8A6212;font-weight:bold;";
-const CL_TITLE="background:#1F4E79;color:#fff;font-weight:bold;border:1px solid #9BB0C4;padding:5px 8px;font-size:13px;";
-function tr(cells,style){return "<tr>"+cells.map(c=>'<td style="'+style+'">'+
-  (c==null?"":String(c))+"</td>").join("")+"</tr>"}
-function richHTML(){
-  const H=["移動手段","時刻","乗車駅／降車駅","線名","番線・行先","両数・号車","拠点名"];
-  let h='<table style="border-collapse:collapse;font-family:Meiryo,sans-serif">';
-  courses.forEach(c=>{
+const THEME0={title:"#ffff00",head:"#ffffff",stop:"#ffff00",train:"#ffffff",
+  walk:"#ffffff",ev:"#ffe699",entr:"#00ff00",exitc:"#f4cccc",line:"#000000"};
+let THEME={...THEME0};
+const PRESETS={
+  "現行どおり":{...THEME0},
+  "落ち着いた黄":{title:"#ffd966",head:"#ffffff",stop:"#fff2cc",train:"#ffffff",walk:"#ffffff",
+    ev:"#ffe699",entr:"#c6efce",exitc:"#f4cccc",line:"#808080"},
+  "青":{title:"#1F4E79",head:"#16324F",stop:"#DCE6F1",train:"#ffffff",walk:"#ffffff",ev:"#FFF2CC",
+    entr:"#C6EFCE",exitc:"#F4CCCC",line:"#B8C7D6"},
+  "グレー（白黒印刷向け）":{title:"#d9d9d9",head:"#ffffff",stop:"#e4e4e4",train:"#ffffff",walk:"#ffffff",
+    ev:"#f2f2f2",entr:"#d9d9d9",exitc:"#eeeeee",line:"#808080"}
+};
+function lum(hex){const c=String(hex).replace("#","");
+  if(c.length!==6)return 1;
+  const r=parseInt(c.slice(0,2),16),g=parseInt(c.slice(2,4),16),b=parseInt(c.slice(4,6),16);
+  return (0.299*r+0.587*g+0.114*b)/255}
+function txOn(bg){return lum(bg)<0.6?"#ffffff":"#101821"}
+let CL_HEAD,CL_BASE,CL_STOP,CL_TRAIN,CL_WALK,CL_EV,CL_TITLE;
+function applyTheme(){
+  CL_HEAD="background:"+THEME.head+";color:"+txOn(THEME.head)+
+    ";font-weight:bold;border:1px solid "+THEME.line+";padding:4px 8px;font-size:12px;";
+  CL_BASE="border:1px solid "+THEME.line+";padding:3px 8px;font-size:12px;";
+  CL_STOP=CL_BASE+"background:"+THEME.stop+";color:"+txOn(THEME.stop)+";font-weight:bold;";
+  CL_TRAIN=CL_BASE+"background:"+THEME.train+";color:"+txOn(THEME.train)+";";
+  CL_WALK=CL_BASE+"background:"+THEME.walk+";color:"+txOn(THEME.walk)+";";
+  CL_EV=CL_BASE+"background:"+THEME.ev+";color:"+txOn(THEME.ev)+";font-weight:bold;";
+  CL_TITLE="background:"+THEME.title+";color:"+txOn(THEME.title)+
+    ";font-weight:bold;border:1px solid "+THEME.line+";padding:5px 8px;font-size:13px;";
+}
+applyTheme();
+function setTheme(k,v){THEME[k]=v;applyTheme();render()}
+function setPreset(nm){if(PRESETS[nm]){THEME={...PRESETS[nm]};applyTheme();render();
+  say("配色を「"+nm+"」にしました")}}
+function resetTheme(){THEME={...THEME0};applyTheme();render();say("配色を標準に戻しました")}
+function tr(cells,style,ov){return "<tr>"+cells.map((c,i)=>'<td style="'+style+
+  ((ov&&ov[i])?ov[i]:"")+'">'+(c==null?"":String(c))+"</td>").join("")+"</tr>"}
+function cellBg(col){return "background:"+col+";color:"+txOn(col)+";"}
+function richHTML(only){
+  applyTheme();
+  const H=["移動手段","発車時刻","乗車駅","線名","車両位置（番ドア）入口/出口/番線","","拠点名"];
+  const list=(only==null)?courses.map((c,i)=>({c:c,i:i})):[{c:courses[only],i:only}];
+  const MT=n("meet");
+  let h="";
+  list.forEach(({c,i})=>{
     const R=calc(c);
-    h+='<tr><td colspan="7" style="'+CL_TITLE+'">'+c.name+'　'+(c.date||"")+'　開始 '+(c.start||"")+'</td></tr>';
-    h+="<tr>"+H.map(x=>'<td style="'+CL_HEAD+'">'+x+"</td>").join("")+"</tr>";
+    const stops=R.rows.filter(r=>r.k==="stop").length;
+    const first=R.rows.find(r=>r.k==="stop");
+    h+='<table style="border-collapse:collapse;font-family:Meiryo,sans-serif;margin-bottom:18px">';
+    h+='<tr><td colspan="7" style="'+CL_TITLE+'">'+fmtD2(c.date)+'（'+c.name+'）　'+stops+'拠点'+
+       (first?'　集合 '+m2t(first.a-MT):'')+'　終了予定 '+m2t(R.end)+'</td></tr>';
+    h+="<tr>"+H.map((x,k)=>'<td style="'+CL_HEAD+'"'+(k===4?' colspan="2"':'')+'>'+x+"</td>").join("")+"</tr>";
     R.rows.forEach(r=>{
       if(r.k==="stop"){
-        h+=tr(["",m2t(r.a)+"-"+m2t(r.b),r.stn.s+"駅","",r.stn.ex?"出口 "+r.stn.ex:"","",r.s.name],CL_STOP);
+        if(r===first)h+=tr(["集合",m2t(r.a-MT),"","","","",
+          r.stn.s+"駅"+(r.stn.ex?" "+r.stn.ex:"")+"　集合"],CL_EV);
+        h+=tr(["",m2t(r.a)+"-"+m2t(r.b),"","","","",r.s.name],CL_STOP);
       }else if(r.k==="ev"){
-        h+=tr(["",m2t(r.t)+(r.min?"-"+m2t(r.t+r.min):""),"","","",r.min?r.min+"分":"車内",r.label],CL_EV);
+        h+=tr(["",m2t(r.t)+(r.min?"-"+m2t(r.t+r.min):""),"","","","",
+          r.label+(r.min?"（"+r.min+"分）":"（車内）")],CL_EV);
       }else if(r.k==="pair"){
-        h+=tr(["徒歩"+r.w+"分","","","","","",r.a.name+" → "+r.b.name],CL_WALK);
+        h+=tr(["徒歩"+r.w+"分","","","","","",""],CL_WALK);
       }else if(r.k==="ride"){
         const nm=(r.kind==="taxi"?"タクシー":"バス");
-        h+=tr([nm,m2t(r.dep)+((r.fd||r.fa)?" ★":""),r.stop||"",r.line||"","",r.dur+"分",
-          r.a.name+" → "+r.b.name],CL_TRAIN);
+        h+=tr([nm,m2t(r.dep)+((r.fd||r.fa)?" ★":""),r.stop||"",r.line||"",r.dur+"分","",""],CL_TRAIN);
         h+=tr(["到着",m2t(r.arr),"","","","",""],CL_TRAIN);
       }else if(r.k==="train"){
-        h+=tr(["徒歩"+r.sa.w+"分","","","","","",r.a.name+" → "+r.sa.s+"駅"],CL_WALK);
+        h+=tr(["徒歩"+r.sa.w+"分","","","","入口:"+(r.sa.ex||""),"",""],CL_WALK,
+          {4:cellBg(THEME.entr)});
         r.hops.forEach((x,k)=>{const g=x.g;
-          if(k>0)h+=tr(["乗り換え",m2t(x.at),x.from+"駅","","",x.tw+"分",""],CL_TRAIN);
-          h+=tr(["出発",m2t(x.dep)+((x.fd||x.fa)?" ★":""),x.from+"駅",g.line||"",g.track||"",
-            posText(g)||"要確認",""],CL_TRAIN);
+          if(k>0)h+=tr(["乗り換え"+x.tw+"分",m2t(x.at),x.from+"駅","","","",""],CL_TRAIN);
+          h+=tr(["出発",m2t(x.dep)+((x.fd||x.fa)?" ★":""),x.from+"駅",g.line||"",
+            g.track||"",posText(g)||"要確認",""],CL_TRAIN);
           h+=tr(["到着",m2t(x.arr),x.to+"駅","","","",""],CL_TRAIN)});
-        h+=tr(["徒歩"+r.sb.w+"分","","","",r.sb.ex?"出口 "+r.sb.ex:"","",r.sb.s+"駅 → "+r.b.name],CL_WALK);
+        h+=tr(["徒歩"+r.sb.w+"分","","","","出口："+(r.sb.ex||""),"",""],CL_WALK,
+          {4:cellBg(THEME.exitc)});
       }
     });
     h+=tr(["終了",m2t(R.end),"","","","",""],CL_STOP);
-    h+='<tr><td colspan="7" style="border:none;height:14px"></td></tr>';
+    h+="</table>";
   });
-  return h+"</table>";
+  return h;
 }
-function copyRich(){
-  const el=document.getElementById("rich");
+function fmtD2(d){
+  if(!d)return "";
+  const p=String(d).split("-");if(p.length<3)return d;
+  return (+p[0])+"・"+(+p[1])+"・"+(+p[2])+"日";
+}
+function fmtD(d){
+  if(!d)return "";
+  const p=String(d).split("-");if(p.length<3)return d;
+  const w=["日","月","火","水","木","金","土"][new Date(+p[0],+p[1]-1,+p[2]).getDay()];
+  return (+p[1])+"月"+(+p[2])+"日（"+w+"）";
+}
+const TLBL={title:"見出し（日付の帯）",head:"項目名の行",stop:"拠点（点検）の行",
+  train:"電車・バスの行",walk:"徒歩の行",ev:"集合・休憩などの行",
+  entr:"入口セル",exitc:"出口セル",line:"罫線"};
+function tgTheme(){const f=document.getElementById("themebox");
+  f.style.display=f.style.display==="none"?"block":"none";themePanel()}
+function themePanel(){
+  const el=document.getElementById("themebox");if(!el)return;
+  el.innerHTML='<div class="orow"><b>おすすめ配色</b><span class="sp"></span>'+
+    Object.keys(PRESETS).map(k=>'<button class="btn ghost sm" onclick="setPreset(\''+k+'\')">'+k+'</button>').join(" ")+
+    '</div>'+
+    Object.keys(TLBL).map(k=>'<div class="crow"><input type="color" value="'+THEME[k]+
+      '" onchange="setTheme(\''+k+'\',this.value)"><span>'+TLBL[k]+'</span>'+
+      '<span class="cchip" style="background:'+THEME[k]+';color:'+txOn(THEME[k])+'">'+THEME[k]+'</span></div>').join("")+
+    '<div style="margin-top:8px"><button class="btn ghost sm" onclick="resetTheme()">標準に戻す</button>'+
+    ' <span class="hint">色はコピー・Excel保存の両方に反映されます。</span></div>';
+}
+function outPanel(){
+  const el=document.getElementById("outp");if(!el)return;
+  el.innerHTML=courses.map((c,i)=>
+    '<div class="orow"><b>'+c.name+'</b><span class="meta">'+fmtD(c.date)+'　'+
+    c.items.filter(x=>x.type==="stop").length+'拠点</span><span class="sp"></span>'+
+    '<button class="btn sm" onclick="copyRich('+i+')">書式つきでコピー</button> '+
+    '<button class="btn ghost sm" onclick="dlXls('+i+')">Excelで保存</button> '+
+    '<button class="btn ghost sm" onclick="csvRough('+i+')">ざっくりCSV</button></div>').join("")+
+    (courses.length>1?'<div class="orow" style="border-top:1px solid #DCE3EA;margin-top:6px;padding-top:8px">'+
+    '<b>全コースまとめて</b><span class="sp"></span>'+
+    '<button class="btn ghost sm" onclick="dlXls()">Excelで保存</button> '+
+    '<button class="btn ghost sm" onclick="csvRough()">ざっくりCSV</button> '+
+    '<button class="btn ghost sm" onclick="csvFull()">詳細CSV</button></div>':"")+
+    '<div style="margin-top:10px"><label class="hint"><input type="checkbox" id="prev" onchange="render()"'+
+    (document.getElementById("prev")&&document.getElementById("prev").checked?" checked":"")+
+    '> 下にプレビューを表示する</label></div>';
+}
+function copyRich(only){
+  const tmp=document.createElement("div");
+  tmp.style.cssText="position:fixed;left:-9999px;top:0";
+  tmp.innerHTML=richHTML(only);document.body.appendChild(tmp);
+  const el=tmp;
   const rg=document.createRange();rg.selectNodeContents(el);
   const sl=window.getSelection();sl.removeAllRanges();sl.addRange(rg);
   let okc=false;try{okc=document.execCommand("copy")}catch(e){}
-  sl.removeAllRanges();
+  sl.removeAllRanges();document.body.removeChild(tmp);
   say(okc?"書式つきでコピーしました。Excelやスプレッドシートに貼り付けてください。"
         :"コピーできませんでした。下の表をマウスで選択してコピーしてください。");
 }
-function dlXls(){
+function dlXls(only){
   const html='<html xmlns:x="urn:schemas-microsoft-com:office:excel"><head><meta charset="utf-8">'+
-    '</head><body>'+richHTML()+'</body></html>';
+    '</head><body>'+richHTML(only)+'</body></html>';
   const b=new Blob(["\ufeff"+html],{type:"application/vnd.ms-excel;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(b);
-  a.download="環境整備点検_運行表.xls";a.click();
+  a.download="環境整備点検_運行表"+(only==null?"":"_"+courses[only].name.replace(/[\\/:*?"<>|]/g,""))+".xls";
+  a.click();
   say("保存しました。Excelで開くと色と罫線が入った状態になります。");
 }
 /* ===== 自動保存 ===== */
 const SKEY="nagi-route-builder-v1";
 let persist=null, saveT=null;
 function rules(){return {insp:document.getElementById("insp").value,buf:document.getElementById("buf").value,
-  same:document.getElementById("same").value,close:document.getElementById("close").value}}
-function payload(){return JSON.stringify({v:1,courses:courses,OV:OV,rules:rules(),ci:ci})}
+  same:document.getElementById("same").value,close:document.getElementById("close").value,
+  meet:document.getElementById("meet").value}}
+function payload(){return JSON.stringify({v:1,courses:courses,OV:OV,rules:rules(),ci:ci,theme:THEME})}
 function stnow(){const d=new Date();
   return String(d.getHours()).padStart(2,"0")+":"+String(d.getMinutes()).padStart(2,"0")+":"+
     String(d.getSeconds()).padStart(2,"0")}
@@ -843,6 +948,7 @@ function applyState(o){
   if(o.courses&&o.courses.length){courses=o.courses;ci=Math.min(o.ci||0,o.courses.length-1)}
   if(o.OV)OV={stn:o.OV.stn||{},seg:o.OV.seg||{},pair:o.OV.pair||{},extra:o.OV.extra||{},news:o.OV.news||[],hide:o.OV.hide||{},ride:o.OV.ride||{}};
   if(o.rules)Object.keys(o.rules).forEach(k=>{const e=document.getElementById(k);if(e)e.value=o.rules[k]});
+  if(o.theme){THEME={...THEME0,...o.theme};applyTheme()}
 }
 async function boot(){
   let raw=null;
@@ -856,7 +962,8 @@ async function boot(){
 }
 function resetAll(){
   courses=[{name:"1日目 A班",date:"2026-08-26",start:"09:00",items:[]}];ci=0;
-  OV={stn:{},seg:{},pair:{},extra:{},news:[],hide:{},ride:{}};buildPicker();render();say("最初の状態に戻しました。")}
+  OV={stn:{},seg:{},pair:{},extra:{},news:[],hide:{},ride:{}};THEME={...THEME0};applyTheme();
+  buildPicker();render();say("最初の状態に戻しました。")}
 function toggleNew(){
   const f=document.getElementById("newform");
   const open=f.style.display==="none";
@@ -1033,19 +1140,19 @@ function impCsv(e){const f=e.target.files[0];if(!f)return;const r=new FileReader
   r.onload=()=>doImport(String(r.result).replace(/^\ufeff/,""));r.readAsText(f,"UTF-8")}
 function setNewBlk(id,b){const x=(OV.news||[]).find(y=>y.id===id);if(x){x.blk=b;buildPicker();render()}}
 function toggleLinks(){document.getElementById("links").classList.toggle("on")}
-function copyTbl(){const t=["順\t店舗\t最寄駅\t点検時刻\t閉店時刻"].concat(
-  window._ann.map((x,i)=>[i+1,x.name,x.stn,x.a+"〜"+x.b,x.c].join("\t"))).join("\n");
+function copyTbl(){const t=["順\t店舗\t最寄駅\t集合\t点検時刻\t閉店時刻"].concat(
+  window._ann.map((x,i)=>[i+1,x.name,x.stn,x.m,x.a+"〜"+x.b,x.c].join("\t"))).join("\n");
   navigator.clipboard.writeText(t).then(()=>say("表をコピーしました。Excelに貼り付けできます。"),
     ()=>say("コピーできませんでした。表を選択して手動でコピーしてください。"))}
 function dl(name,rows){
   const csv="\ufeff"+rows.map(r=>r.map(c=>'"'+String(c==null?"":c).replace(/"/g,'""')+'"').join(",")).join("\r\n");
   const b=new Blob([csv],{type:"text/csv;charset=utf-8"});
   const a=document.createElement("a");a.href=URL.createObjectURL(b);a.download=name;a.click()}
-function csvRough(){
+function csvRough(only){
   const rows=[["コース","点検日","順","時刻","種別","拠点・内容","使用駅"]];
-  courses.forEach(c=>{const R=calc(c);let k=0;
+  (only==null?courses:[courses[only]]).forEach(c=>{const R=calc(c);let k=0;
     R.rows.forEach(r=>{
-      if(r.k==="stop"){k++;rows.push([c.name,c.date,k,m2t(r.a)+"〜"+m2t(r.b),"点検",r.s.name,r.stn.s])}
+      if(r.k==="stop"){k++;rows.push([c.name,c.date,k,m2t(r.a-n("meet"))+"集合／"+m2t(r.a)+"〜"+m2t(r.b),"点検",r.s.name,r.stn.s])}
       else if(r.k==="ev"){rows.push([c.name,c.date,"",m2t(r.t)+(r.min?"〜"+m2t(r.t+r.min):""),r.label,r.min?r.min+"分":"車内",""])}
       else if(r.k==="train"){r.hops.forEach((x,k)=>rows.push([c.name,c.date,"",
         m2t(x.dep)+"〜"+m2t(x.arr),(r.hops.length>1?"移動"+(k+1):"移動"),x.from+"→"+x.to,""]))}
@@ -1053,7 +1160,7 @@ function csvRough(){
         (r.kind==="taxi"?"タクシー":"バス"),r.a.name+"→"+r.b.name,r.line||""])}
       else if(r.k==="pair"){rows.push([c.name,c.date,"","","徒歩",r.a.name+"→"+r.b.name,r.sa.s])}});
     rows.push([c.name,c.date,"",m2t(R.end),"終了","",""]);rows.push([])});
-  dl("環境整備点検_ざっくりルート案.csv",rows)}
+  dl("環境整備点検_ざっくりルート案"+(only==null?"":"_"+courses[only].name.replace(/[\\/:*?"<>|]/g,""))+".csv",rows)}
 function csvFull(){
   const rows=[["コース","点検日","順","時刻","種別","拠点・内容","使用駅","出口","路線・番線","乗車位置","所要(分)","閉店時刻","検証"]];
   courses.forEach(c=>{const R=calc(c);let k=0;
@@ -1082,7 +1189,7 @@ function impAll(e){const f=e.target.files[0];if(!f)return;const r=new FileReader
     if(o.OV)OV={stn:o.OV.stn||{},seg:o.OV.seg||{},pair:o.OV.pair||{},extra:o.OV.extra||{},news:o.OV.news||[],hide:o.OV.hide||{},ride:o.OV.ride||{}};
     buildPicker();render();say("読み込みました。")}catch(err){say("ファイルを読めませんでした。")}};
   r.readAsText(f)}
-["insp","buf","same","close"].forEach(id=>document.getElementById(id).addEventListener("change",render));
+["insp","buf","same","close","meet"].forEach(id=>document.getElementById(id).addEventListener("change",render));
 buildPicker();boot();
 </script>
 </body>
