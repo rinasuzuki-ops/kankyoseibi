@@ -101,6 +101,22 @@
      "htw": []
     },
     {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問②（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "35",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "12:51"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
      "type": "stop",
      "id": "5",
      "dep": null,
@@ -155,22 +171,6 @@
       "14:39"
      ],
      "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "35",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "12:51"
-     ],
-     "harr": [],
-     "htw": []
-    },
-    {
-     "type": "quiz",
-     "min": 0,
-     "label": "質問②（車内）"
     },
     {
      "type": "stop",
