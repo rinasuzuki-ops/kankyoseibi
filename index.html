@@ -202,8 +202,21 @@ th{background:#F2F5F8;font-size:11px;color:var(--band)}
         <div style="flex:1"><label>振り返りの場所名</label>
           <input id="cwpt" style="width:100%" placeholder="例：東銀座 本社3階／○○貸会議室 5F"
             onchange="setC('wpt',this.value)"></div>
-        <div><label>移動(分)</label><input id="cwmv" type="number" onchange="setC('wmv',this.value)"></div>
         <div><label>所要(分)</label><input id="cwmin" type="number" onchange="setC('wmin',this.value)"></div>
+      </div>
+      <div class="pad ctl" style="padding-top:0">
+        <div><label>会場の最寄駅</label><input id="cwstn" style="width:110px"
+          placeholder="例：東銀座" onchange="setC('wstn',this.value)"></div>
+        <div><label>出口</label><input id="cwex" style="width:90px" placeholder="例：A3" onchange="setC('wex',this.value)"></div>
+        <div><label>駅→会場(分)</label><input id="cwwalk" type="number" onchange="setC('wwalk',this.value)"></div>
+        <div style="flex:1"><label>会場の住所（地図用・任意）</label>
+          <input id="cwaddr" style="width:100%" placeholder="例：中央区銀座3-13-11" onchange="setC('waddr',this.value)"></div>
+        <div style="flex-basis:100%"><p class="hint" style="margin:0">
+        最寄駅を入れると、<b>最後の店舗から会場までの電車・乗車位置・時刻</b>が自動で出ます。
+        「本社（事務所）」は空欄なら東銀座A3で自動計算します。空欄＋その他の会場なら、下の「移動(分)」だけの簡易表示になります。</p></div>
+      </div>
+      <div class="pad ctl" style="padding-top:0">
+        <div><label>移動(分)（駅を使わない時）</label><input id="cwmv" type="number" onchange="setC('wmv',this.value)"></div>
       </div>
       <div class="pad" style="padding-top:0"><button class="btn ghost sm" id="delbtn" onclick="delC()">このコースを削除</button></div>
     </div>
@@ -395,7 +408,7 @@ function setPh(i,p){C().items[i].ph=p||null;render();
   say(p==="arrive"?"この項目を「到着後（点検の直前）」に移しました":"この項目を「移動前（点検の直後）」に移しました")}
 function setEv(i,f,x){C().items[i][f]=(f==="min")?(parseInt(x)||0):x;render()}
 function setC(f,x){C()[f]=x;render()}
-function setLeg(i,f,x){C().items[i][f]=(x==="")?null:x;render()}
+function setLeg(i,f,x){IT(i)[f]=(x==="")?null:x;render()}
 function normT(x){
   x=String(x||"").trim();
   if(!x)return null;
@@ -411,17 +424,17 @@ function normT(x){
 function addVia(i,x){
   x=String(x||"").trim().replace(/駅$/,"");
   if(!x){render();return}
-  const it=C().items[i];it.via=(it.via||[]).concat([x]);
+  const it=IT(i);it.via=(it.via||[]).concat([x]);
   it.hdep=it.hdep||[];it.harr=it.harr||[];it.htw=it.htw||[];
   render();say("乗換駅「"+x+"」を追加しました");
 }
 function delVia(i,k){
-  const it=C().items[i];it.via=(it.via||[]).filter((_,j)=>j!==k);
+  const it=IT(i);it.via=(it.via||[]).filter((_,j)=>j!==k);
   it.hdep=[];it.harr=[];it.htw=[];
   render();say("乗換駅を削除しました");
 }
 function setHop(i,k,f,x){
-  const it=C().items[i];
+  const it=IT(i);
   if(f==="tw"){it.htw=it.htw||[];it.htw[k]=parseInt(x)||0;render();return}
   const v=normT(x);
   if(x&&String(x).trim()&&!v){say("時刻を読み取れません。9:17 のように入力してください。");render();return}
@@ -429,19 +442,19 @@ function setHop(i,k,f,x){
   else{it.harr=it.harr||[];it.harr[k]=v}
   render();
 }
-function clearHop(i){const it=C().items[i];it.hdep=[];it.harr=[];it.htw=[];render();
+function clearHop(i){const it=IT(i);it.hdep=[];it.harr=[];it.htw=[];render();
   say("この区間の時刻を自動計算に戻しました")}
 function setLegT(i,f,x){
   const v=normT(x);
   if(x&&String(x).trim()&&!v){say("時刻を読み取れません。9:17 のように入力してください。");render();return}
-  C().items[i][f]=v;
-  if(f==="dept"&&!v)C().items[i].arrt=null;
+  IT(i)[f]=v;
+  if(f==="dept"&&!v)IT(i).arrt=null;
   render();
 }
-function clearT(i){C().items[i].dept=null;C().items[i].arrt=null;render();
+function clearT(i){const it=IT(i);it.dept=null;it.arrt=null;render();
   say("この区間の時刻を自動計算に戻しました")}
-function setMode(i,m){C().items[i].mode=m||null;
-  if(m==="train"){C().items[i].dep=null;C().items[i].arr=null}
+function setMode(i,m){const it=IT(i);it.mode=m||null;
+  if(m==="train"){it.dep=null;it.arr=null}
   render();
   say(m==="train"?"この区間を電車に切り替えました":
       m==="walk"?"この区間を徒歩に切り替えました":"この区間を自動に戻しました")}
@@ -504,7 +517,7 @@ function selHTML(store,cur,idx,field){
   const L=opts(store),key=idx+"|"+field,open=EDIT.has(key);
   let s='<select class="stnsel" onchange="setLeg('+idx+',\''+field+'\',this.value)">'+
     '<option value="">自動（'+cur+'）</option>'+
-    L.map(o=>'<option value="'+esc(o.s)+'"'+(C().items[idx][field]===o.s?' selected':'')+'>'+
+    L.map(o=>'<option value="'+esc(o.s)+'"'+(IT(idx)[field]===o.s?' selected':'')+'>'+
       o.s+'（徒歩'+o.w+'分'+(o.n?'':'・推定')+'）</option>').join("")+'</select>';
   s+=' <button class="mini'+(open?' onmode':'')+'" onclick="tgEdit(\''+key+'\')" title="駅の候補を編集">駅⋯</button>';
   if(open){
@@ -631,20 +644,39 @@ function meetName(c,first){
     :(first?first.s.name+" 店前":"店前");
   return base+(ex?"（"+ex+"）":"");
 }
+let WC=null;
+function wrapStore(c){
+  if(!c||!c.wp||c.wp==="store")return null;
+  if(c.wp==="office"){
+    const hq=S.find(x=>x.id==="H1");
+    if(hq&&!(c.wstn||"").trim())
+      return {id:"__WRAP__",name:wrapName(c),blk:hq.blk,addr:hq.addr,stn:hq.stn,
+      stns:hq.stns.map(o=>({...o}))};
+  }
+  const sn=(c.wstn||"").trim().replace(/駅$/,"");
+  if(!sn)return null;
+  return {id:"__WRAP__",name:wrapName(c),blk:"A",addr:(c.waddr||"").trim(),stn:sn,
+    stns:[{s:sn,ex:(c.wex||"").trim(),w:parseInt(c.wwalk)||5,n:0}]};
+}
+function IT(i){const c=C();return (i>=c.items.length)?(c.wleg=c.wleg||{}):c.items[i]}
 function calc(c){
+  WC=c;
   let cur=t2m(c.start||"09:00");
   const INSP=n("insp"),BUF=n("buf"),SAME=n("same"),CL=n("close");
   const out=[];let prev=null,prevIdx=-1,pend=[];
   const flush=()=>{pend.forEach(p=>{
     out.push({k:"ev",idx:p.idx,t:cur,min:p.it.min||0,label:p.it.label,type:p.it.type,ph:"arrive"});
     cur+=(p.it.min||0)});pend=[]};
-  c.items.forEach((it,idx)=>{
+  const WS=wrapStore(c);
+  const ITEMS=WS?c.items.concat([Object.assign({type:"stop",id:"__WRAP__"},c.wleg||{})]):c.items;
+  ITEMS.forEach((it,idx)=>{
     if(it.type!=="stop"){
       if(it.ph==="arrive"){pend.push({it:it,idx:idx});return}
       out.push({k:"ev",idx:idx,t:cur,min:it.min||0,label:it.label,type:it.type,ph:it.ph});
       cur+=(it.min||0);return}
-    const s=st(it.id);
+    const s=(it.id==="__WRAP__")?WS:st(it.id);
     if(!s)return;
+    const isW=(it.id==="__WRAP__"),WM=isW?(parseInt(c.wmin)||30):INSP;
     if(prev){
       if(it.mode==="taxi"||it.mode==="bus"){
         const kind=it.mode,rk=prev.id+"|"+s.id+"|"+kind,rv=(OV.ride||{})[rk]||{};
@@ -658,11 +690,12 @@ function calc(c){
           line:rv.line||"",stop:rv.stop||"",mode:it.mode});
         cur=arr0;
         const stn0=opt(s,it.arr);
-        flush();out.push({k:"stop",s:s,idx:idx,stn:stn0,a:cur,b:cur+INSP,c:cur-CL});
-        cur+=INSP;prev=s;prevIdx=idx;return;
+        flush();out.push(isW?{k:"wrap",idx:idx,stn:stn0,place:s.name,min:WM,a:cur,b:cur+WM}
+          :{k:"stop",s:s,idx:idx,stn:stn0,a:cur,b:cur+INSP,c:cur-CL});
+        cur+=WM;prev=s;prevIdx=idx;return;
       }
       const pkey=prev.id+"|"+s.id;
-      const P=pick(prev,s,c.items[prevIdx].dep,it.arr,BUF,SAME,it.mode,OV.pair[pkey]);
+      const P=pick(prev,s,ITEMS[prevIdx].dep,it.arr,BUF,SAME,it.mode,OV.pair[pkey]);
       if(P.walkOnly){
         const w=OV.pair[pkey]!=null?OV.pair[pkey]:
           ((prev.addr&&s.addr&&prev.addr===s.addr)?2:SAME);
@@ -690,15 +723,17 @@ function calc(c){
           hops:segs,atStn:atStn,arr:t,mode:it.mode,via:via});
         cur=t+P.b.w;
       }
-      flush();out.push({k:"stop",s:s,idx:idx,stn:P.b,a:cur,b:cur+INSP,c:cur-CL});
+      flush();out.push(isW?{k:"wrap",idx:idx,stn:P.b,place:s.name,min:WM,a:cur,b:cur+WM}
+        :{k:"stop",s:s,idx:idx,stn:P.b,a:cur,b:cur+INSP,c:cur-CL});
     }else{
       const first=opt(s,it.arr);
-      flush();out.push({k:"stop",s:s,idx:idx,stn:first,a:cur,b:cur+INSP,c:cur-CL});
+      flush();out.push(isW?{k:"wrap",idx:idx,stn:first,place:s.name,min:WM,a:cur,b:cur+WM}
+        :{k:"stop",s:s,idx:idx,stn:first,a:cur,b:cur+INSP,c:cur-CL});
     }
-    cur+=INSP;prev=s;prevIdx=idx;
+    cur+=WM;prev=s;prevIdx=idx;
   });
   flush();
-  if(c.wp){
+  if(c.wp&&!WS){
     const mv=parseInt(c.wmv)||0,wm=parseInt(c.wmin)||30;
     if(mv){out.push({k:"wmove",t:cur,min:mv});cur+=mv}
     out.push({k:"wrap",t:cur,min:wm,place:wrapName(c),a:cur,b:cur+wm});
@@ -718,6 +753,10 @@ function render(){
   document.getElementById("cwpt").value=C().wpt||"";
   document.getElementById("cwmv").value=(C().wmv!=null?C().wmv:10);
   document.getElementById("cwmin").value=(C().wmin!=null?C().wmin:30);
+  document.getElementById("cwstn").value=C().wstn||"";
+  document.getElementById("cwex").value=C().wex||"";
+  document.getElementById("cwwalk").value=(C().wwalk!=null?C().wwalk:5);
+  document.getElementById("cwaddr").value=C().waddr||"";
   const db=document.getElementById("delbtn");
   if(db){db.textContent=delArm?"もう一度押すと削除されます":"このコースを削除";
     db.style.color=delArm?"#C0392B":"";db.style.borderColor=delArm?"#C0392B":""}
@@ -764,7 +803,8 @@ function render(){
     }else if(r.k==="wrap"){
       html+='<div class="row"><div class="t num">'+m2t(r.a)+'-'+m2t(r.b)+'</div>'+
         '<div class="rail"><span class="dot"></span></div><div class="body">'+
-        '<div class="stopname">振り返り　'+r.place+'</div><div class="meta">'+r.min+'分</div></div></div>';
+        '<div class="stopname">振り返り　'+r.place+'</div><div class="meta">'+
+        (r.stn?r.stn.s+'駅'+(r.stn.ex?'／出口 '+r.stn.ex:'')+'　':'')+r.min+'分</div></div></div>';
     }else if(r.k==="pair"){
       const op=EDIT.has("P"+r.idx);
       html+='<div class="row"><div class="t"></div><div class="rail"></div><div class="body">'+
@@ -958,7 +998,8 @@ function richHTML(only){
       }else if(r.k==="wmove"){
         h+=tr(["移動"+r.min+"分",m2t(r.t),"","","","","振り返り会場へ"],CL_WALK);
       }else if(r.k==="wrap"){
-        h+=tr(["振り返り",m2t(r.a)+"-"+m2t(r.b),"","","","",r.place],CL_EV);
+        h+=tr(["振り返り",m2t(r.a)+"-"+m2t(r.b),r.stn?r.stn.s+"駅":"","",
+          (r.stn&&r.stn.ex)?"出口 "+r.stn.ex:"","",r.place],CL_EV);
       }else if(r.k==="ev"){
         h+=tr(["",m2t(r.t)+(r.min?"-"+m2t(r.t+r.min):""),"","","","",
           evLabel(r)],CL_EV);
@@ -1129,7 +1170,8 @@ function compactRows(i){
     }else if(r.k==="ev"){
       add("ev",[m2t(r.t)+(r.min?"-"+m2t(r.t+r.min):""),"",evLabel(r),"","",""]);
     }else if(r.k==="wmove"){add("ev",[m2t(r.t),"移動"+r.min+"分","振り返り会場へ","","",""]);
-    }else if(r.k==="wrap"){add("ev",[m2t(r.a)+"-"+m2t(r.b),"振り返り",r.place,"","",""]);
+    }else if(r.k==="wrap"){add("ev",[m2t(r.a)+"-"+m2t(r.b),walk||"振り返り",r.place,
+      r.stn?r.stn.s+(r.stn.ex?" "+r.stn.ex:""):"","",outx]);walk="";outx="";
     }else if(r.k==="ride"){
       const nm=(r.kind==="taxi"?"タクシー":"バス");
       add("train",[m2t(r.dep)+"→"+m2t(r.arr),nm,(r.stop||"")+(r.stop?" から":""),r.line||"",r.dur+"分",""],(r.kind==="bus"&&!r.stop));
@@ -1484,7 +1526,7 @@ function csvRough(only){
     R.rows.forEach(r=>{
       if(r.k==="stop"){k++;rows.push([c.name,c.date,k,m2t(r.a-n("meet"))+"集合／"+m2t(r.a)+"〜"+m2t(r.b),"点検",r.s.name,r.stn.s])}
       else if(r.k==="ev"){rows.push([c.name,c.date,"",m2t(r.t)+(r.min?"〜"+m2t(r.t+r.min):""),r.label,r.min?r.min+"分":"車内",""])}
-      else if(r.k==="wrap"){rows.push([c.name,c.date,"",m2t(r.a)+"〜"+m2t(r.b),"振り返り",r.place,""])}
+      else if(r.k==="wrap"){rows.push([c.name,c.date,"",m2t(r.a)+"〜"+m2t(r.b),"振り返り",r.place,r.stn?r.stn.s:""])}
       else if(r.k==="wmove"){rows.push([c.name,c.date,"",m2t(r.t),"移動","振り返り会場へ",""])}
       else if(r.k==="train"){r.hops.forEach((x,k)=>rows.push([c.name,c.date,"",
         m2t(x.dep)+"〜"+m2t(x.arr),(r.hops.length>1?"移動"+(k+1):"移動"),x.from+"→"+x.to,""]))}
