@@ -1,526 +1,6 @@
 {
  "courses": [
   {
-   "name": "２日目B①",
-   "date": "2026-12-02",
-   "start": "09:10",
-   "items": [
-    {
-     "type": "stop",
-     "id": "51",
-     "dep": "川越",
-     "arr": null
-    },
-    {
-     "type": "quiz",
-     "min": 0,
-     "label": "質問タイム（車内）"
-    },
-    {
-     "type": "stop",
-     "id": "3",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "09:32"
-     ],
-     "harr": [
-      "09:53"
-     ]
-    },
-    {
-     "type": "stop",
-     "id": "14",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "10:16"
-     ],
-     "harr": [
-      "10:39"
-     ]
-    },
-    {
-     "type": "stop",
-     "id": "34",
-     "dep": null,
-     "arr": null,
-     "dept": "11:00",
-     "hdep": [
-      "11:00",
-      "11:11",
-      "11:27"
-     ],
-     "harr": [
-      null,
-      "11:19",
-      "11:37"
-     ],
-     "via": [
-      "赤羽",
-      "池袋"
-     ],
-     "htw": [
-      null,
-      6
-     ]
-    },
-    {
-     "type": "stop",
-     "id": "18",
-     "dep": null,
-     "arr": null,
-     "harr": [
-      "11:59"
-     ],
-     "mode": null,
-     "hdep": [],
-     "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "40",
-     "dep": null,
-     "arr": null,
-     "mode": "walk"
-    },
-    {
-     "type": "jan",
-     "min": 5,
-     "label": "シェアじゃんけん"
-    },
-    {
-     "type": "stop",
-     "id": "44",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "12:34"
-     ],
-     "harr": [],
-     "htw": []
-    },
-    {
-     "type": "quiz",
-     "min": 0,
-     "label": "質問②（車内）"
-    },
-    {
-     "type": "stop",
-     "id": "35",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "12:51"
-     ],
-     "harr": [],
-     "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "5",
-     "dep": null,
-     "arr": "西武新宿",
-     "hdep": [
-      "13:23"
-     ],
-     "harr": [
-      "13:26"
-     ],
-     "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "1",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "13:42"
-     ],
-     "harr": [
-      "13:47"
-     ]
-    },
-    {
-     "type": "stop",
-     "id": "17",
-     "dep": "新宿",
-     "arr": null
-    },
-    {
-     "type": "stop",
-     "id": "9",
-     "dep": null,
-     "arr": null
-    },
-    {
-     "type": "stop",
-     "id": "2",
-     "dep": "西新宿",
-     "arr": "新宿"
-    },
-    {
-     "type": "stop",
-     "id": "43",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "14:33"
-     ],
-     "harr": [
-      "14:39"
-     ],
-     "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "21",
-     "dep": null,
-     "arr": null
-    },
-    {
-     "type": "rest",
-     "min": 25,
-     "label": "休憩",
-     "ph": "arrive"
-    },
-    {
-     "type": "stop",
-     "id": "8",
-     "dep": null,
-     "arr": null,
-     "mode": "train",
-     "hdep": [
-      "15:15"
-     ],
-     "harr": [],
-     "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "30",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "15:59"
-     ],
-     "harr": [],
-     "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "HJ",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "16:24",
-      "16:31",
-      "16:39"
-     ],
-     "harr": [
-      "16:29",
-      "16:38",
-      "17:01"
-     ],
-     "via": [
-      "三鷹",
-      "国分寺"
-     ],
-     "htw": []
-    },
-    {
-     "type": "quiz",
-     "min": 0,
-     "label": "質問③（車内）"
-    },
-    {
-     "type": "stop",
-     "id": "39",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "17:10"
-     ],
-     "harr": [],
-     "htw": []
-    }
-   ],
-   "wp": "room",
-   "wmv": "15"
-  },
-  {
-   "name": "2日目A①",
-   "date": "2026-12-02",
-   "start": "08:20",
-   "items": [
-    {
-     "type": "stop",
-     "id": "48",
-     "dep": null,
-     "arr": null
-    },
-    {
-     "type": "stop",
-     "id": "49",
-     "dep": null,
-     "arr": null,
-     "harr": [
-      "08:54",
-      "09:11"
-     ],
-     "via": [
-      "中央林間"
-     ],
-     "hdep": [
-      null,
-      "09:01"
-     ],
-     "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "47",
-     "dep": null,
-     "arr": null,
-     "mode": null,
-     "hdep": [
-      "09:32",
-      "09:52",
-      "10:07"
-     ],
-     "harr": [
-      "09:45",
-      "10:00",
-      "10:13"
-     ],
-     "via": [
-      "溝の口",
-      "登戸"
-     ],
-     "htw": []
-    },
-    {
-     "type": "quiz",
-     "min": 0,
-     "label": "質問タイム（車内）"
-    },
-    {
-     "type": "stop",
-     "id": "S1",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "10:27"
-     ],
-     "harr": [
-      "10:34"
-     ]
-    },
-    {
-     "type": "stop",
-     "id": "20",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "10:53"
-     ],
-     "harr": [
-      "10:57"
-     ]
-    },
-    {
-     "type": "stop",
-     "id": "4",
-     "dep": null,
-     "arr": null
-    },
-    {
-     "type": "stop",
-     "id": "37",
-     "dep": null,
-     "arr": null
-    },
-    {
-     "type": "jan",
-     "min": 5,
-     "label": "シェアじゃんけん"
-    },
-    {
-     "type": "stop",
-     "id": "F3",
-     "dep": null,
-     "arr": null,
-     "via": [
-      "目黒"
-     ],
-     "hdep": [
-      "11:59",
-      "12:11"
-     ],
-     "harr": [
-      "12:04",
-      "12:15"
-     ],
-     "htw": []
-    },
-    {
-     "type": "quiz",
-     "min": 0,
-     "label": "質問タイム（車内）"
-    },
-    {
-     "type": "stop",
-     "id": "26",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "12:33"
-     ],
-     "harr": [
-      "12:49"
-     ]
-    },
-    {
-     "type": "stop",
-     "id": "F4",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "13:05"
-     ],
-     "harr": [
-      "13:13"
-     ]
-    },
-    {
-     "type": "stop",
-     "id": "32",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "13:26"
-     ],
-     "harr": [
-      "13:30"
-     ]
-    },
-    {
-     "type": "quiz",
-     "min": 0,
-     "label": "質問タイム（車内）"
-    },
-    {
-     "type": "stop",
-     "id": "45",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "13:45",
-      "13:55"
-     ],
-     "harr": [
-      "13:50",
-      "14:13"
-     ],
-     "via": [
-      "横浜"
-     ],
-     "htw": []
-    },
-    {
-     "type": "rest",
-     "min": 30,
-     "label": "休憩",
-     "ph": "arrive"
-    },
-    {
-     "type": "stop",
-     "id": "27",
-     "dep": null,
-     "arr": null,
-     "via": [],
-     "hdep": [
-      "14:35"
-     ],
-     "harr": [
-      "15:12"
-     ],
-     "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "31",
-     "dep": null,
-     "arr": null
-    },
-    {
-     "type": "stop",
-     "id": "F1",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "16:30"
-     ],
-     "harr": [
-      "16:33"
-     ],
-     "htw": []
-    },
-    {
-     "type": "stop",
-     "id": "22",
-     "dep": null,
-     "arr": "川崎",
-     "hdep": [
-      "16:21"
-     ],
-     "harr": [
-      "16:34"
-     ],
-     "htw": [],
-     "mode": "walk"
-    },
-    {
-     "type": "stop",
-     "id": "41",
-     "dep": null,
-     "arr": null,
-     "hdep": [],
-     "harr": [],
-     "htw": [],
-     "mode": "walk"
-    },
-    {
-     "type": "stop",
-     "id": "28",
-     "dep": null,
-     "arr": null,
-     "hdep": [
-      "17:12"
-     ],
-     "harr": [
-      "17:21"
-     ]
-    }
-   ],
-   "wp": "office",
-   "wpt": "東銀座",
-   "wleg": {
-    "hdep": [
-     "17:37",
-     "18:01"
-    ],
-    "via": [
-     "新橋"
-    ],
-    "harr": [
-     "17:52",
-     "18:03"
-    ],
-    "htw": []
-   }
-  },
-  {
    "name": "１日目A①",
    "date": "2026-12-01",
    "start": "08:20",
@@ -812,6 +292,1357 @@
     }
    ],
    "wp": "office"
+  },
+  {
+   "name": "2日目A①",
+   "date": "2026-12-02",
+   "start": "08:20",
+   "items": [
+    {
+     "type": "stop",
+     "id": "48",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "49",
+     "dep": null,
+     "arr": null,
+     "harr": [
+      "08:54",
+      "09:11"
+     ],
+     "via": [
+      "中央林間"
+     ],
+     "hdep": [
+      null,
+      "09:01"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "47",
+     "dep": null,
+     "arr": null,
+     "mode": null,
+     "hdep": [
+      "09:32",
+      "09:52",
+      "10:07"
+     ],
+     "harr": [
+      "09:45",
+      "10:00",
+      "10:13"
+     ],
+     "via": [
+      "溝の口",
+      "登戸"
+     ],
+     "htw": []
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問タイム（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "S1",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "10:27"
+     ],
+     "harr": [
+      "10:34"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "20",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "10:53"
+     ],
+     "harr": [
+      "10:57"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "4",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "37",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "jan",
+     "min": 5,
+     "label": "シェアじゃんけん"
+    },
+    {
+     "type": "stop",
+     "id": "F3",
+     "dep": null,
+     "arr": null,
+     "via": [
+      "目黒"
+     ],
+     "hdep": [
+      "11:59",
+      "12:11"
+     ],
+     "harr": [
+      "12:04",
+      "12:15"
+     ],
+     "htw": []
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問タイム（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "26",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "12:33"
+     ],
+     "harr": [
+      "12:49"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "F4",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:05"
+     ],
+     "harr": [
+      "13:13"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "32",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:26"
+     ],
+     "harr": [
+      "13:30"
+     ]
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問タイム（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "45",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:45",
+      "13:55"
+     ],
+     "harr": [
+      "13:50",
+      "14:13"
+     ],
+     "via": [
+      "横浜"
+     ],
+     "htw": []
+    },
+    {
+     "type": "rest",
+     "min": 30,
+     "label": "休憩",
+     "ph": "arrive"
+    },
+    {
+     "type": "stop",
+     "id": "27",
+     "dep": null,
+     "arr": null,
+     "via": [],
+     "hdep": [
+      "14:35"
+     ],
+     "harr": [
+      "15:12"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "31",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "F1",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "16:30"
+     ],
+     "harr": [
+      "16:33"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "22",
+     "dep": null,
+     "arr": "川崎",
+     "hdep": [
+      "16:21"
+     ],
+     "harr": [
+      "16:34"
+     ],
+     "htw": [],
+     "mode": "walk"
+    },
+    {
+     "type": "stop",
+     "id": "41",
+     "dep": null,
+     "arr": null,
+     "hdep": [],
+     "harr": [],
+     "htw": [],
+     "mode": "walk"
+    },
+    {
+     "type": "stop",
+     "id": "28",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "17:12"
+     ],
+     "harr": [
+      "17:21"
+     ]
+    }
+   ],
+   "wp": "office",
+   "wpt": "東銀座",
+   "wleg": {
+    "hdep": [
+     "17:37",
+     "18:01"
+    ],
+    "via": [
+     "新橋"
+    ],
+    "harr": [
+     "17:52",
+     "18:03"
+    ],
+    "htw": []
+   }
+  },
+  {
+   "name": "２日目B①",
+   "date": "2026-12-02",
+   "start": "09:10",
+   "items": [
+    {
+     "type": "stop",
+     "id": "51",
+     "dep": "川越",
+     "arr": null
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問タイム（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "3",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "09:32"
+     ],
+     "harr": [
+      "09:53"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "14",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "10:16"
+     ],
+     "harr": [
+      "10:39"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "34",
+     "dep": null,
+     "arr": null,
+     "dept": "11:00",
+     "hdep": [
+      "11:00",
+      "11:11",
+      "11:27"
+     ],
+     "harr": [
+      null,
+      "11:19",
+      "11:37"
+     ],
+     "via": [
+      "赤羽",
+      "池袋"
+     ],
+     "htw": [
+      null,
+      6
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "18",
+     "dep": null,
+     "arr": null,
+     "harr": [
+      "11:59"
+     ],
+     "mode": null,
+     "hdep": [],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "40",
+     "dep": null,
+     "arr": null,
+     "mode": "walk"
+    },
+    {
+     "type": "jan",
+     "min": 5,
+     "label": "シェアじゃんけん"
+    },
+    {
+     "type": "stop",
+     "id": "44",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "12:34"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問②（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "35",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "12:51"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "5",
+     "dep": null,
+     "arr": "西武新宿",
+     "hdep": [
+      "13:23"
+     ],
+     "harr": [
+      "13:26"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "1",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:42"
+     ],
+     "harr": [
+      "13:47"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "17",
+     "dep": "新宿",
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "9",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "2",
+     "dep": "西新宿",
+     "arr": "新宿"
+    },
+    {
+     "type": "stop",
+     "id": "43",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "14:33"
+     ],
+     "harr": [
+      "14:39"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "21",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "rest",
+     "min": 25,
+     "label": "休憩",
+     "ph": "arrive"
+    },
+    {
+     "type": "stop",
+     "id": "8",
+     "dep": null,
+     "arr": null,
+     "mode": "train",
+     "hdep": [
+      "15:15"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "30",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "15:59"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "HJ",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "16:24",
+      "16:31",
+      "16:39"
+     ],
+     "harr": [
+      "16:29",
+      "16:38",
+      "17:01"
+     ],
+     "via": [
+      "三鷹",
+      "国分寺"
+     ],
+     "htw": []
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問③（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "39",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "17:10"
+     ],
+     "harr": [],
+     "htw": []
+    }
+   ],
+   "wp": "room",
+   "wmv": "15"
+  },
+  {
+   "name": "１日目A①（12/23）",
+   "date": "2026-12-23",
+   "start": "08:10",
+   "items": [
+    {
+     "type": "stop",
+     "id": "52",
+     "dep": "千葉",
+     "arr": "千葉"
+    },
+    {
+     "type": "stop",
+     "id": "24",
+     "dep": null,
+     "arr": "行徳",
+     "hdep": [
+      "08:31",
+      "09:08"
+     ],
+     "harr": [
+      "09:01",
+      "09:14"
+     ],
+     "via": [
+      "西船橋"
+     ],
+     "htw": [],
+     "mode": "train"
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問タイム（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "42",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "09:37"
+     ],
+     "harr": [
+      "09:48"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "50",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "10:06"
+     ],
+     "harr": [
+      "10:11"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "6",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "10:28"
+     ],
+     "harr": [
+      "10:37"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "36",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "10:57"
+     ],
+     "harr": [
+      "11:01"
+     ],
+     "htw": []
+    },
+    {
+     "type": "jan",
+     "min": 5,
+     "label": "シェアじゃんけん"
+    },
+    {
+     "type": "stop",
+     "id": "13",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "11:24"
+     ],
+     "harr": [
+      "11:27"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "33",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "11:37"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "19",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "11:55"
+     ],
+     "harr": [
+      "11:57"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "16",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "12:23"
+     ],
+     "harr": [
+      "12:34"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "15",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "12:48"
+     ],
+     "harr": [
+      "12:57"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "29",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "F2",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:22",
+      "13:34"
+     ],
+     "harr": [
+      "13:26",
+      "13:37"
+     ],
+     "htw": [],
+     "via": [
+      "品川"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "38",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:50",
+      "14:01"
+     ],
+     "harr": [
+      "13:52",
+      "14:06"
+     ],
+     "htw": [],
+     "via": [
+      "品川"
+     ]
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問タイム（車内）",
+     "ph": null
+    },
+    {
+     "type": "stop",
+     "id": "25",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "14:22",
+      "14:38"
+     ],
+     "harr": [
+      "14:29",
+      "14:50"
+     ],
+     "via": [
+      "三田"
+     ],
+     "htw": [],
+     "mode": null
+    },
+    {
+     "type": "stop",
+     "id": "S2",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "rest",
+     "min": 29,
+     "label": "休憩"
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問タイム（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "H2",
+     "dep": "本蓮沼",
+     "arr": null,
+     "hdep": [
+      "15:45"
+     ],
+     "harr": [
+      "16:03"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "H3",
+     "dep": "本蓮沼",
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "7",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "10",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "17:29"
+     ],
+     "harr": [
+      "17:30"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "11",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "46",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "23",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "18:03"
+     ],
+     "harr": [
+      "18:05"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "H1",
+     "dep": null,
+     "arr": null
+    }
+   ],
+   "wp": "office"
+  },
+  {
+   "name": "2日目A①（12/24）",
+   "date": "2026-12-24",
+   "start": "08:20",
+   "items": [
+    {
+     "type": "stop",
+     "id": "48",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "49",
+     "dep": null,
+     "arr": null,
+     "harr": [
+      "08:54",
+      "09:11"
+     ],
+     "via": [
+      "中央林間"
+     ],
+     "hdep": [
+      null,
+      "09:01"
+     ],
+     "htw": []
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問①（車内・溝の口→登戸）"
+    },
+    {
+     "type": "stop",
+     "id": "47",
+     "dep": null,
+     "arr": null,
+     "mode": null,
+     "hdep": [
+      "09:32",
+      "09:52",
+      "10:07"
+     ],
+     "harr": [
+      "09:45",
+      "10:00",
+      "10:13"
+     ],
+     "via": [
+      "溝の口",
+      "登戸"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "S1",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "10:27"
+     ],
+     "harr": [
+      "10:34"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "20",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "10:53"
+     ],
+     "harr": [
+      "10:57"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "4",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "37",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "jan",
+     "min": 5,
+     "label": "シェアじゃんけん"
+    },
+    {
+     "type": "stop",
+     "id": "F3",
+     "dep": null,
+     "arr": null,
+     "via": [
+      "目黒"
+     ],
+     "hdep": [
+      "11:59",
+      "12:11"
+     ],
+     "harr": [
+      "12:04",
+      "12:15"
+     ],
+     "htw": []
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問②（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "26",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "12:33"
+     ],
+     "harr": [
+      "12:49"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "F4",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:05"
+     ],
+     "harr": [
+      "13:13"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "32",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:26"
+     ],
+     "harr": [
+      "13:30"
+     ]
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問③（車内・横浜→新杉田）"
+    },
+    {
+     "type": "stop",
+     "id": "45",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:45",
+      "13:55"
+     ],
+     "harr": [
+      "13:50",
+      "14:13"
+     ],
+     "via": [
+      "横浜"
+     ],
+     "htw": []
+    },
+    {
+     "type": "rest",
+     "min": 30,
+     "label": "休憩",
+     "ph": "arrive"
+    },
+    {
+     "type": "stop",
+     "id": "27",
+     "dep": null,
+     "arr": null,
+     "via": [],
+     "hdep": [
+      "14:35"
+     ],
+     "harr": [
+      "15:12"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "31",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "F1",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "16:30"
+     ],
+     "harr": [
+      "16:33"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "22",
+     "dep": null,
+     "arr": "川崎",
+     "hdep": [
+      "16:21"
+     ],
+     "harr": [
+      "16:34"
+     ],
+     "htw": [],
+     "mode": "walk"
+    },
+    {
+     "type": "stop",
+     "id": "41",
+     "dep": null,
+     "arr": null,
+     "hdep": [],
+     "harr": [],
+     "htw": [],
+     "mode": "walk"
+    },
+    {
+     "type": "stop",
+     "id": "28",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "17:12"
+     ],
+     "harr": [
+      "17:21"
+     ]
+    }
+   ],
+   "wp": "office",
+   "wpt": "東銀座",
+   "wleg": {
+    "hdep": [
+     "17:37",
+     "18:01"
+    ],
+    "via": [
+     "新橋"
+    ],
+    "harr": [
+     "17:52",
+     "18:03"
+    ],
+    "htw": []
+   }
+  },
+  {
+   "name": "２日目B①（12/24）",
+   "date": "2026-12-24",
+   "start": "08:50",
+   "items": [
+    {
+     "type": "stop",
+     "id": "51",
+     "dep": "川越",
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "3",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "09:12"
+     ],
+     "harr": []
+    },
+    {
+     "type": "stop",
+     "id": "55",
+     "dep": null,
+     "arr": null,
+     "mode": "walk"
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問①（車内・大宮→川口）"
+    },
+    {
+     "type": "stop",
+     "id": "14",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "10:16"
+     ],
+     "harr": [
+      "10:39"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "34",
+     "dep": null,
+     "arr": null,
+     "dept": "11:00",
+     "hdep": [
+      "11:00",
+      "11:11",
+      "11:27"
+     ],
+     "harr": [
+      null,
+      "11:19",
+      "11:37"
+     ],
+     "via": [
+      "赤羽",
+      "池袋"
+     ],
+     "htw": [
+      null,
+      6
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "18",
+     "dep": null,
+     "arr": null,
+     "harr": [
+      "11:59"
+     ],
+     "mode": null,
+     "hdep": [],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "40",
+     "dep": null,
+     "arr": null,
+     "mode": "walk"
+    },
+    {
+     "type": "jan",
+     "min": 5,
+     "label": "シェアじゃんけん"
+    },
+    {
+     "type": "stop",
+     "id": "44",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "12:34"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問②（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "35",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "12:51"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "5",
+     "dep": null,
+     "arr": "西武新宿",
+     "hdep": [
+      "13:23"
+     ],
+     "harr": [
+      "13:26"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "1",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "13:42"
+     ],
+     "harr": [
+      "13:47"
+     ]
+    },
+    {
+     "type": "stop",
+     "id": "17",
+     "dep": "新宿",
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "9",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "stop",
+     "id": "2",
+     "dep": "西新宿",
+     "arr": "新宿"
+    },
+    {
+     "type": "stop",
+     "id": "43",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "14:33"
+     ],
+     "harr": [
+      "14:39"
+     ],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "21",
+     "dep": null,
+     "arr": null
+    },
+    {
+     "type": "rest",
+     "min": 25,
+     "label": "休憩",
+     "ph": "arrive"
+    },
+    {
+     "type": "stop",
+     "id": "8",
+     "dep": null,
+     "arr": null,
+     "mode": "train",
+     "hdep": [
+      "15:15"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "30",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "15:59"
+     ],
+     "harr": [],
+     "htw": []
+    },
+    {
+     "type": "stop",
+     "id": "HJ",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "16:24",
+      "16:31",
+      "16:39"
+     ],
+     "harr": [
+      "16:29",
+      "16:38",
+      "17:01"
+     ],
+     "via": [
+      "三鷹",
+      "国分寺"
+     ],
+     "htw": []
+    },
+    {
+     "type": "quiz",
+     "min": 0,
+     "label": "質問③（車内）"
+    },
+    {
+     "type": "stop",
+     "id": "39",
+     "dep": null,
+     "arr": null,
+     "hdep": [
+      "17:10"
+     ],
+     "harr": [],
+     "htw": []
+    }
+   ],
+   "wp": "room",
+   "wmv": "15"
   }
  ],
  "OV": {
